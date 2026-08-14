@@ -1,0 +1,51 @@
+{
+  "name": "beauty-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Production beauty booking platform for hair braiding and nail services.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:web": "npm run dev -w @beauty/web",
+    "dev:api": "npm run dev -w @beauty/api",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "npm run test:e2e -w @beauty/web",
+    "format": "prettier --write .",
+    "db:generate": "npm run prisma:generate -w @beauty/api",
+    "db:migrate": "npm run prisma:migrate -w @beauty/api",
+    "db:migrate:dev": "npm run prisma:migrate:dev -w @beauty/api",
+    "db:push": "npm run prisma:push -w @beauty/api",
+    "db:seed": "npm run prisma:seed -w @beauty/api",
+    "db:studio": "npm run prisma:studio -w @beauty/api",
+    "db:local": "node scripts/local-postgres.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "npm@11.17.0",
+  "devDependencies": {
+    "embedded-postgres": "^17.6.0-beta.15",
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "prisma@6.19.3": true,
+    "argon2@0.43.1": true,
+    "esbuild@0.28.2": true,
+    "sharp@0.34.5": true,
+    "unrs-resolver@1.12.2": true
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.5",
+    "@electric-sql/pglite-socket": "^0.2.8"
+  }
+}

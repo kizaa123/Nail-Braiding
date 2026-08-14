@@ -1,0 +1,455 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  PROFESSIONAL
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum ProfessionalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CategoryKind {
+  HAIR
+  NAILS
+}
+
+enum FavoriteTargetType {
+  STYLE
+  PORTFOLIO_ITEM
+  PROFESSIONAL
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  WHATSAPP
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String     @unique
+  passwordHash    String
+  role            UserRole
+  status          UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  customerProfile     CustomerProfile?
+  professionalProfile ProfessionalProfile?
+  sessions            Session[]
+  emailTokens         EmailVerificationToken[]
+  passwordResets      PasswordResetToken[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  roles               UserRoleAssignment[]
+
+  @@index([role])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model UserRoleAssignment {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  role      UserRole
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([role])
+}
+
+model CustomerProfile {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  firstName String
+  lastName  String
+  phone     String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+  favorites Favorite[]
+  reviews   Review[]
+
+  @@index([lastName, firstName])
+}
+
+model ProfessionalProfile {
+  id                String             @id @default(uuid()) @db.Uuid
+  userId            String             @unique @db.Uuid
+  slug              String             @unique
+  businessName      String
+  biography         String             @default("")
+  locationCity      String             @default("")
+  locationRegion    String             @default("")
+  locationCountry   String             @default("Ghana")
+  latitude          Decimal?           @db.Decimal(9, 6)
+  longitude         Decimal?           @db.Decimal(9, 6)
+  phoneNumber       String?
+  profilePhotoUrl   String?
+  coverPhotoUrl     String?
+  status            ProfessionalStatus @default(PENDING)
+  rejectionReason   String?
+  ratingAverage     Decimal            @default(0) @db.Decimal(3, 2)
+  ratingCount       Int                @default(0)
+  profileViews      Int                @default(0)
+  timezone          String             @default("Africa/Accra")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  services       Service[]
+  portfolioItems PortfolioItem[]
+  availability   Availability[]
+  exceptions     AvailabilityException[]
+  bookings       Booking[]
+  reviews        Review[]
+  whatsapp       WhatsAppContact?
+
+  @@index([status])
+  @@index([locationCity])
+  @@index([locationRegion])
+  @@index([ratingAverage])
+  @@index([businessName])
+}
+
+model ServiceCategory {
+  id          String       @id @default(uuid()) @db.Uuid
+  slug        String       @unique
+  name        String
+  kind        CategoryKind
+  parentId    String?      @db.Uuid
+  description String?
+  imageUrl    String?
+  sortOrder   Int          @default(0)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  parent   ServiceCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children ServiceCategory[] @relation("CategoryTree")
+  styles   Style[]
+  services Service[]
+  portfolioItems PortfolioItem[]
+
+  @@index([kind])
+  @@index([parentId])
+  @@index([isActive, sortOrder])
+}
+
+model Style {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique
+  name        String
+  categoryId  String   @db.Uuid
+  description String?
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category       ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  services       Service[]
+  portfolioItems PortfolioItem[]
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([name])
+}
+
+model Service {
+  id               String   @id @default(uuid()) @db.Uuid
+  professionalId   String   @db.Uuid
+  categoryId       String   @db.Uuid
+  styleId          String?  @db.Uuid
+  name             String
+  description      String?
+  priceMinor       Int
+  currency         String   @default("GHS")
+  durationMinutes  Int
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  category     ServiceCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  style        Style?              @relation(fields: [styleId], references: [id], onDelete: SetNull)
+  bookings     Booking[]
+
+  @@index([professionalId, isActive])
+  @@index([categoryId])
+  @@index([styleId])
+  @@index([priceMinor])
+}
+
+model PortfolioItem {
+  id                String           @id @default(uuid()) @db.Uuid
+  professionalId    String           @db.Uuid
+  categoryId        String?          @db.Uuid
+  styleId           String?          @db.Uuid
+  storageKey        String
+  url               String
+  thumbnailUrl      String
+  smallUrl          String
+  mediumUrl         String
+  largeUrl          String
+  width             Int
+  height            Int
+  alt               String
+  caption           String?
+  mimeType          String
+  bytes             Int
+  moderationStatus  ModerationStatus @default(PENDING)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  category     ServiceCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  style        Style?              @relation(fields: [styleId], references: [id], onDelete: SetNull)
+
+  @@index([professionalId, createdAt])
+  @@index([styleId])
+  @@index([categoryId])
+  @@index([moderationStatus])
+}
+
+model Availability {
+  id             String    @id @default(uuid()) @db.Uuid
+  professionalId String    @db.Uuid
+  dayOfWeek      DayOfWeek
+  startMinutes   Int
+  endMinutes     Int
+  timezone       String    @default("Africa/Accra")
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@unique([professionalId, dayOfWeek, startMinutes, endMinutes])
+  @@index([professionalId, isActive])
+}
+
+model AvailabilityException {
+  id             String   @id @default(uuid()) @db.Uuid
+  professionalId String   @db.Uuid
+  date           DateTime @db.Date
+  isBlocked      Boolean  @default(true)
+  startMinutes   Int?
+  endMinutes     Int?
+  reason         String?
+  createdAt      DateTime @default(now())
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@index([professionalId, date])
+}
+
+model Booking {
+  id              String        @id @default(uuid()) @db.Uuid
+  reference       String        @unique
+  customerId      String        @db.Uuid
+  professionalId  String        @db.Uuid
+  serviceId       String        @db.Uuid
+  scheduledAt     DateTime
+  endAt           DateTime
+  durationMinutes Int
+  priceMinor      Int
+  currency        String        @default("GHS")
+  status          BookingStatus @default(PENDING)
+  notes           String?
+  whatsappUrl     String?
+  cancelledAt     DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  customer     CustomerProfile     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Restrict)
+  service      Service             @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  review       Review?
+
+  @@index([professionalId, scheduledAt])
+  @@index([customerId, createdAt])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([serviceId])
+}
+
+model Favorite {
+  id         String             @id @default(uuid()) @db.Uuid
+  customerId String             @db.Uuid
+  targetType FavoriteTargetType
+  targetId   String             @db.Uuid
+  createdAt  DateTime           @default(now())
+
+  customer CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, targetType, targetId])
+  @@index([targetType, targetId])
+}
+
+model Review {
+  id               String           @id @default(uuid()) @db.Uuid
+  bookingId        String           @unique @db.Uuid
+  customerId       String           @db.Uuid
+  professionalId   String           @db.Uuid
+  rating           Int
+  comment          String
+  moderationStatus ModerationStatus @default(PENDING)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  booking      Booking             @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  customer     CustomerProfile     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Restrict)
+
+  @@index([professionalId, moderationStatus])
+  @@index([customerId])
+}
+
+model Notification {
+  id        String              @id @default(uuid()) @db.Uuid
+  userId    String              @db.Uuid
+  type      String
+  title     String
+  body      String
+  data      Json?
+  channel   NotificationChannel @default(IN_APP)
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
+model WhatsAppContact {
+  id             String    @id @default(uuid()) @db.Uuid
+  professionalId String    @unique @db.Uuid
+  phoneE164      String
+  verifiedAt     DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@index([phoneE164])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  actorId   String?  @db.Uuid
+  action    String
+  entity    String
+  entityId  String
+  metadata  Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+  @@index([action])
+}
+
+model Session {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @db.Uuid
+  refreshTokenHash String
+  expiresAt        DateTime
+  userAgent        String?
+  ip               String?
+  revokedAt        DateTime?
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PlatformSetting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}
