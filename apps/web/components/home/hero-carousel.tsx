@@ -4,157 +4,166 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-// High-resolution editorial images for slides & carousels
-const mainSlides = [
+interface HeroSlide {
+  id: number;
+  eyebrow: string;
+  headlineLine1: string;
+  headlineLine2: string;
+  scriptTagline: string;
+  bigHeroImage: string;
+  nailCard: {
+    image: string;
+    title: string;
+    subtitle: string;
+    tag: string;
+  };
+  braidCard: {
+    image: string;
+    title: string;
+    subtitle: string;
+    tag: string;
+  };
+}
+
+const slides: HeroSlide[] = [
   {
     id: 1,
-    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1800&q=80',
-    title: 'YOUR BEAUTY. YOUR STYLE.',
-    subtitle: 'Your signature look starts here.',
     eyebrow: 'NAILS. BRAIDS. CONFIDENCE.',
+    headlineLine1: 'YOUR BEAUTY.',
+    headlineLine2: 'YOUR STYLE.',
+    scriptTagline: 'Your signature look starts here.',
+    bigHeroImage: '/hero-portrait-1.jpg',
+    nailCard: {
+      image: 'https://images.unsplash.com/photo-1632345031435-8217dcdd2ee1?auto=format&fit=crop&w=600&q=80',
+      title: 'NAIL DESIGNS',
+      subtitle: 'Explore Now',
+      tag: 'French Couture',
+    },
+    braidCard: {
+      image: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=600&q=80',
+      title: 'HAIR BRAIDS',
+      subtitle: 'Explore Now',
+      tag: 'Knotless Braids',
+    },
   },
   {
     id: 2,
-    image: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=1800&q=80',
-    title: 'HIGH-FASHION BRAIDS.',
-    subtitle: 'Crafted with precision & care.',
     eyebrow: 'KNOTLESS. BOHO. FULANI.',
+    headlineLine1: 'REGAL ELEGANCE.',
+    headlineLine2: 'CULTURE & GLAMOUR.',
+    scriptTagline: 'Crafted with precision & care.',
+    bigHeroImage: '/hero-portrait-2.jpg',
+    nailCard: {
+      image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=600&q=80',
+      title: 'CHROME COUTURE',
+      subtitle: 'Explore Now',
+      tag: 'Mirror Polish',
+    },
+    braidCard: {
+      image: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=600&q=80',
+      title: 'FULANI BRAIDS',
+      subtitle: 'Explore Now',
+      tag: 'Gold Cuffs',
+    },
   },
   {
     id: 3,
-    image: 'https://images.unsplash.com/photo-1632345031435-8217dcdd2ee1?auto=format&fit=crop&w=1800&q=80',
-    title: 'NAIL ARTISTRY & COUTURE.',
-    subtitle: 'Elegance down to your fingertips.',
     eyebrow: 'CHROME. FRENCH TIPS. GEL-X.',
+    headlineLine1: 'STATEMENT NAILS.',
+    headlineLine2: 'BOHEMIAN WAVES.',
+    scriptTagline: 'Elegance down to your fingertips.',
+    bigHeroImage: '/hero-portrait-3.jpg',
+    nailCard: {
+      image: 'https://images.unsplash.com/photo-1610992015732-2449b76344bc?auto=format&fit=crop&w=600&q=80',
+      title: 'CAT EYE GEL',
+      subtitle: 'Explore Now',
+      tag: 'Magnetic Glow',
+    },
+    braidCard: {
+      image: 'https://images.unsplash.com/photo-1595475878912-0e881b6273df?auto=format&fit=crop&w=600&q=80',
+      title: 'BOHO BRAIDS',
+      subtitle: 'Explore Now',
+      tag: 'Curly Waves',
+    },
   },
   {
     id: 4,
-    image: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=1800&q=80',
-    title: 'THE LUXURY STUDIO EXPERIENCE.',
-    subtitle: 'Book your dream transformation.',
     eyebrow: 'TOP RATED PROFESSIONALS.',
-  },
-];
-
-const nailCardSlides = [
-  {
-    id: 'n1',
-    title: 'NAIL DESIGNS',
-    subtitle: 'Explore Now',
-    image: 'https://images.unsplash.com/photo-1632345031435-8217dcdd2ee1?auto=format&fit=crop&w=600&q=80',
-    tag: 'French Tips & Glitter',
-  },
-  {
-    id: 'n2',
-    title: 'CHROME COUTURE',
-    subtitle: 'Explore Now',
-    image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=600&q=80',
-    tag: 'Mirror Finish Chrome',
-  },
-  {
-    id: 'n3',
-    title: 'CAT EYE GEL',
-    subtitle: 'Explore Now',
-    image: 'https://images.unsplash.com/photo-1610992015732-2449b76344bc?auto=format&fit=crop&w=600&q=80',
-    tag: 'Magnetic Shimmer',
-  },
-  {
-    id: 'n4',
-    title: 'ALMOND GEL-X',
-    subtitle: 'Explore Now',
-    image: 'https://images.unsplash.com/photo-1607779097040-26e80aa78e66?auto=format&fit=crop&w=600&q=80',
-    tag: 'Tapered Almond Art',
-  },
-];
-
-const braidCardSlides = [
-  {
-    id: 'b1',
-    title: 'HAIR BRAIDS',
-    subtitle: 'Explore Now',
-    image: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=600&q=80',
-    tag: 'Sleek Knotless Braids',
-  },
-  {
-    id: 'b2',
-    title: 'BOHO CURLS',
-    subtitle: 'Explore Now',
-    image: 'https://images.unsplash.com/photo-1595475878912-0e881b6273df?auto=format&fit=crop&w=600&q=80',
-    tag: 'Bohemian Flowing Waves',
-  },
-  {
-    id: 'b3',
-    title: 'FULANI BEADS',
-    subtitle: 'Explore Now',
-    image: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=600&q=80',
-    tag: 'Traditional Fulani Pattern',
-  },
-  {
-    id: 'b4',
-    title: 'GODDESS LOCS',
-    subtitle: 'Explore Now',
-    image: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=600&q=80',
-    tag: 'Textured Faux Locs',
+    headlineLine1: 'LUXURY COUTURE.',
+    headlineLine2: 'STUDIO EXPERIENCE.',
+    scriptTagline: 'Book your dream transformation.',
+    bigHeroImage: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1800&q=80',
+    nailCard: {
+      image: 'https://images.unsplash.com/photo-1607779097040-26e80aa78e66?auto=format&fit=crop&w=600&q=80',
+      title: 'ALMOND GEL-X',
+      subtitle: 'Explore Now',
+      tag: 'Tapered Shape',
+    },
+    braidCard: {
+      image: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=600&q=80',
+      title: 'GODDESS LOCS',
+      subtitle: 'Explore Now',
+      tag: 'Textured Locs',
+    },
   },
 ];
 
 export function HeroCarousel() {
-  const [activeMainIndex, setActiveMainIndex] = useState(0);
-  const [activeNailIndex, setActiveNailIndex] = useState(0);
-  const [activeBraidIndex, setActiveBraidIndex] = useState(0);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
-  // Auto-play main hero background slide
+  // Auto-play the single unified hero carousel
   useEffect(() => {
     const timer = setInterval(() => {
-      setActiveMainIndex((prev) => (prev + 1) % mainSlides.length);
+      setActiveSlideIndex((prev) => (prev + 1) % slides.length);
     }, 6000);
     return () => clearInterval(timer);
   }, []);
 
-  const handleNextNailSlide = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setActiveNailIndex((prev) => (prev + 1) % nailCardSlides.length);
+  const handleNextSlide = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setActiveSlideIndex((prev) => (prev + 1) % slides.length);
   };
 
-  const handleNextBraidSlide = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setActiveBraidIndex((prev) => (prev + 1) % braidCardSlides.length);
-  };
-
-  const currentMainSlide = mainSlides[activeMainIndex]!;
-  const currentNailSlide = nailCardSlides[activeNailIndex]!;
-  const currentBraidSlide = braidCardSlides[activeBraidIndex]!;
+  const currentSlide = slides[activeSlideIndex]!;
 
   return (
-    <section className="relative min-h-[90vh] lg:min-h-[92vh] w-full bg-[#120E0E] text-white overflow-hidden flex flex-col justify-between pt-4 pb-20">
-      {/* ── Background Hero Image Carousel ── */}
-      <div className="absolute inset-0 z-0">
-        {mainSlides.map((slide, index) => (
+    <section className="relative min-h-[88vh] lg:min-h-[92vh] w-full bg-[#120D0D] text-white overflow-hidden flex flex-col justify-between pt-4 pb-20">
+      
+      {/* ── BIG HERO MODEL PORTRAIT CAROUSEL (RIGHT-CENTER POSITIONED & CLEAR) ── */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        {slides.map((slide, index) => (
           <div
             key={slide.id}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-              index === activeMainIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+              index === activeSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
             }`}
           >
-            <Image
-              src={slide.image}
-              alt={slide.title}
-              fill
-              priority={index === 0}
-              className="object-cover object-center scale-105 transition-transform duration-[8000ms] ease-out"
-              sizes="100vw"
-            />
-            {/* Dark moody gradient overlay matching reference image */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0F0C0C]/95 via-[#140F0F]/80 to-[#120D0D]/40" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#120E0E] via-transparent to-[#120E0E]/60" />
+            {/* Model Image wrapper positioned right-center so the portrait face, hair & nails pop */}
+            <div className="absolute top-0 right-0 bottom-0 w-full lg:w-[62%] h-full">
+              <Image
+                src={slide.bigHeroImage}
+                alt={slide.headlineLine1}
+                fill
+                priority={index === 0}
+                className="object-cover object-center scale-100 transition-transform duration-[8000ms] ease-out"
+                sizes="(max-width: 1024px) 100vw, 62vw"
+              />
+              {/* Fade edges into dark background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#120D0D] via-transparent to-transparent hidden lg:block" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#120D0D]/60 via-transparent to-[#120D0D]" />
+            </div>
+
+            {/* Dark gradient for text readability on left side */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#120D0D] via-[#120D0D]/90 to-transparent lg:w-[50%]" />
           </div>
         ))}
       </div>
 
       {/* ── Main Container Grid ── */}
-      <div className="relative z-20 mx-auto w-full max-w-7xl px-6 md:px-12 lg:px-16 pt-8 md:pt-16 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center flex-grow">
+      <div className="relative z-20 mx-auto w-full max-w-7xl px-6 md:px-12 lg:px-16 pt-8 md:pt-14 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center flex-grow">
         
         {/* ── Left Content Column (7 cols on desktop) ── */}
         <div className="lg:col-span-7 flex flex-col justify-center items-start space-y-6 max-w-2xl">
@@ -163,22 +172,22 @@ export function HeroCarousel() {
           <div className="flex items-center gap-3">
             <span className="h-[2px] w-8 bg-[#D87D7D]" />
             <span className="text-xs font-bold uppercase tracking-[0.25em] text-[#D87D7D]">
-              {currentMainSlide.eyebrow}
+              {currentSlide.eyebrow}
             </span>
           </div>
 
           {/* Main Headline */}
           <h1 className="font-display text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight text-white uppercase leading-[1.02]">
-            YOUR BEAUTY. <br />
-            YOUR STYLE.
+            {currentSlide.headlineLine1} <br />
+            {currentSlide.headlineLine2}
           </h1>
 
           {/* Cursive Tagline */}
           <p className="font-script text-3xl sm:text-4xl text-[#D87D7D] -mt-2 tracking-wide leading-none">
-            {currentMainSlide.subtitle}
+            {currentSlide.scriptTagline}
           </p>
 
-          {/* Paragraph */}
+          {/* Body Description */}
           <p className="text-sm md:text-base text-white/80 leading-relaxed max-w-lg font-light pt-2">
             Discover trending hairstyles and nail designs. Book with top beauty professionals near you.
           </p>
@@ -255,25 +264,25 @@ export function HeroCarousel() {
 
         </div>
 
-        {/* ── Right Overlay Cards Mini-Carousels (5 cols on desktop) ── */}
+        {/* ── Right Small Cards (Synced to Main Carousel) ── */}
         <div className="lg:col-span-5 flex flex-col sm:flex-row lg:flex-col gap-6 justify-center items-end w-full">
           
-          {/* ── CARD 1: NAIL DESIGNS MINI CAROUSEL ── */}
+          {/* ── CARD 1: NAIL DESIGNS (SYNCED TO HERO CAROUSEL SLIDE) ── */}
           <Link
             href="/styles?kind=NAILS"
-            className="group relative w-full sm:w-1/2 lg:w-72 rounded-2xl overflow-hidden bg-[#241C1C]/80 border border-white/15 shadow-2xl backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:border-[#D87D7D]/60"
+            className="group relative w-full sm:w-1/2 lg:w-72 rounded-2xl overflow-hidden bg-[#241C1C]/80 border border-white/20 shadow-2xl backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:border-[#D87D7D]/70"
           >
             <div className="relative aspect-[16/11] w-full overflow-hidden">
-              {nailCardSlides.map((slide, idx) => (
+              {slides.map((slide, idx) => (
                 <div
-                  key={slide.id}
+                  key={`nail-${slide.id}`}
                   className={`absolute inset-0 transition-opacity duration-700 ${
-                    idx === activeNailIndex ? 'opacity-100' : 'opacity-0'
+                    idx === activeSlideIndex ? 'opacity-100' : 'opacity-0'
                   }`}
                 >
                   <Image
-                    src={slide.image}
-                    alt={slide.title}
+                    src={slide.nailCard.image}
+                    alt={slide.nailCard.title}
                     fill
                     className="object-cover"
                     sizes="300px"
@@ -282,11 +291,11 @@ export function HeroCarousel() {
                 </div>
               ))}
 
-              {/* Next slide arrow button */}
+              {/* Next slide arrow button — advances the overall Hero Carousel */}
               <button
                 type="button"
-                onClick={handleNextNailSlide}
-                aria-label="Next Nail Style"
+                onClick={handleNextSlide}
+                aria-label="Next Carousel Slide"
                 className="absolute top-3 right-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-black shadow-lg hover:bg-white hover:scale-110 active:scale-95 transition-all cursor-pointer"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,31 +306,31 @@ export function HeroCarousel() {
 
             <div className="p-4 bg-[#1F1818]/90">
               <h2 className="text-sm font-bold tracking-wider text-white uppercase group-hover:text-[#D87D7D] transition-colors">
-                {currentNailSlide.title}
+                {currentSlide.nailCard.title}
               </h2>
               <p className="text-[11px] text-white/70 font-light mt-0.5 flex items-center justify-between">
-                <span>{currentNailSlide.subtitle}</span>
-                <span className="text-[10px] text-[#D87D7D] font-semibold">{currentNailSlide.tag}</span>
+                <span>{currentSlide.nailCard.subtitle}</span>
+                <span className="text-[10px] text-[#D87D7D] font-semibold">{currentSlide.nailCard.tag}</span>
               </p>
             </div>
           </Link>
 
-          {/* ── CARD 2: HAIR BRAIDS MINI CAROUSEL ── */}
+          {/* ── CARD 2: HAIR BRAIDS (SYNCED TO HERO CAROUSEL SLIDE) ── */}
           <Link
             href="/styles?kind=HAIR"
-            className="group relative w-full sm:w-1/2 lg:w-72 rounded-2xl overflow-hidden bg-[#241C1C]/80 border border-white/15 shadow-2xl backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:border-[#D87D7D]/60"
+            className="group relative w-full sm:w-1/2 lg:w-72 rounded-2xl overflow-hidden bg-[#241C1C]/80 border border-white/20 shadow-2xl backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:border-[#D87D7D]/70"
           >
             <div className="relative aspect-[16/11] w-full overflow-hidden">
-              {braidCardSlides.map((slide, idx) => (
+              {slides.map((slide, idx) => (
                 <div
-                  key={slide.id}
+                  key={`braid-${slide.id}`}
                   className={`absolute inset-0 transition-opacity duration-700 ${
-                    idx === activeBraidIndex ? 'opacity-100' : 'opacity-0'
+                    idx === activeSlideIndex ? 'opacity-100' : 'opacity-0'
                   }`}
                 >
                   <Image
-                    src={slide.image}
-                    alt={slide.title}
+                    src={slide.braidCard.image}
+                    alt={slide.braidCard.title}
                     fill
                     className="object-cover object-top"
                     sizes="300px"
@@ -330,11 +339,11 @@ export function HeroCarousel() {
                 </div>
               ))}
 
-              {/* Next slide arrow button */}
+              {/* Next slide arrow button — advances the overall Hero Carousel */}
               <button
                 type="button"
-                onClick={handleNextBraidSlide}
-                aria-label="Next Hair Braid Style"
+                onClick={handleNextSlide}
+                aria-label="Next Carousel Slide"
                 className="absolute top-3 right-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-black shadow-lg hover:bg-white hover:scale-110 active:scale-95 transition-all cursor-pointer"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -345,11 +354,11 @@ export function HeroCarousel() {
 
             <div className="p-4 bg-[#1F1818]/90">
               <h2 className="text-sm font-bold tracking-wider text-white uppercase group-hover:text-[#D87D7D] transition-colors">
-                {currentBraidSlide.title}
+                {currentSlide.braidCard.title}
               </h2>
               <p className="text-[11px] text-white/70 font-light mt-0.5 flex items-center justify-between">
-                <span>{currentBraidSlide.subtitle}</span>
-                <span className="text-[10px] text-[#D87D7D] font-semibold">{currentBraidSlide.tag}</span>
+                <span>{currentSlide.braidCard.subtitle}</span>
+                <span className="text-[10px] text-[#D87D7D] font-semibold">{currentSlide.braidCard.tag}</span>
               </p>
             </div>
           </Link>
@@ -360,14 +369,14 @@ export function HeroCarousel() {
 
       {/* ── Bottom Main Hero Carousel Indicators (Dots) ── */}
       <div className="relative z-20 flex items-center justify-center gap-3 pb-6">
-        {mainSlides.map((slide, index) => (
+        {slides.map((slide, index) => (
           <button
             key={slide.id}
             type="button"
-            onClick={() => setActiveMainIndex(index)}
+            onClick={() => setActiveSlideIndex(index)}
             aria-label={`Go to slide ${index + 1}`}
             className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-              index === activeMainIndex
+              index === activeSlideIndex
                 ? 'w-8 bg-[#D87D7D]'
                 : 'w-2.5 bg-white/40 hover:bg-white/70'
             }`}
@@ -384,7 +393,7 @@ export function HeroCarousel() {
           className="w-full h-8 md:h-14 lg:h-16 text-[#F9F6F0] preserve-3d"
         >
           <path
-            d="M0,64L60,69.3C120,75,240,85,360,80C480,75,600,53,720,48C840,43,960,53,1080,64C1200,75,1320,85,1380,90.7L1440,96L1440,120L1380,120C1320,120,1200,120,1080,120C960,120,840,120,720,120C600,120,480,120,360,120C240,120,120,120,60,120L0,120Z"
+            d="M0,64L60,69.3C120,75,240,85,360,80C480,75,600,53,720,48C840,43,960,53,1080,64C1200,75,1320,85,1380,90.7L1440,96L1440,120L1380,120C1320,120,1200,120,1080,120C960,120,480,120,360,120C240,120,120,120,60,120L0,120Z"
             fill="currentColor"
           />
         </svg>
