@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { editorialImages } from '@/lib/content';
 
 export function MarqueeGallery() {
+  // CHANGE BUILT-IN IMAGES: home marquee strip — edit editorialImages in lib/content.ts
   const frames = [...editorialImages.braids, ...editorialImages.nails];
   const loop = [...frames, ...frames];
   return (

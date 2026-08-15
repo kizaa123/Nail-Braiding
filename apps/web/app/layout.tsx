@@ -1,53 +1,34 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Outfit, Alex_Brush } from 'next/font/google';
-import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
-import { MobileDock } from '@/components/layout/mobile-dock';
 import { QueryProvider } from '@/components/providers/query-provider';
+import { AppChrome } from '@/components/layout/app-chrome';
 import './globals.css';
-
-const display = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-display',
-  display: 'swap',
-});
-
-const body = Outfit({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
-  variable: '--font-body',
-  display: 'swap',
-});
-
-const script = Alex_Brush({
-  subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-script',
-  display: 'swap',
-});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Noir Atelier — Hair Braiding & Nail Booking',
-    template: '%s · Noir Atelier',
+    default: 'KAS Beauty Plus — Hair Braiding & Nail Booking',
+    template: '%s · KAS Beauty Plus',
   },
   description:
-    'Discover braids, twists, locs, and nail art. Book trusted beauty professionals in Ghana via WhatsApp.',
+    "Adding values to God's creation. Discover braids, twists, locs, and nail art. Book KAS Beauty Plus in Cape Coast, UCC Campus via WhatsApp.",
+  icons: {
+    icon: '/kas-beauty-plus-logo-gold.png',
+    apple: '/kas-beauty-plus-logo-gold.png',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_GB',
-    siteName: 'Noir Atelier',
-    title: 'Noir Atelier — Your beauty. Your style.',
-    description: 'A premium marketplace for hair braiding and nail services.',
+    siteName: 'KAS Beauty Plus',
+    title: "KAS Beauty Plus — adding values to God's creation",
+    description: 'Luxury hair braiding and nail couture in Cape Coast, UCC Campus.',
+    images: ['/kas-beauty-plus-logo-gold.png'],
   },
   twitter: {
-    card: 'summary_large_image',
-    title: 'Noir Atelier',
-    description: 'Discover your next signature look.',
+    card: 'summary',
+    title: 'KAS Beauty Plus',
+    description: "Adding values to God's creation. Book hair braiding and nail couture in Cape Coast, UCC Campus.",
   },
   robots: { index: true, follow: true },
 };
@@ -55,12 +36,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${display.variable} ${body.variable} ${script.variable} min-h-screen bg-ivory text-ink antialiased`}>
+      <body className="min-h-screen bg-ivory text-ink antialiased">
         <QueryProvider>
-          <SiteHeader />
-          <main className="pb-24 md:pb-0">{children}</main>
-          <SiteFooter />
-          <MobileDock />
+          <AppChrome>{children}</AppChrome>
         </QueryProvider>
       </body>
     </html>

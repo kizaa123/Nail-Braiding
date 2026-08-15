@@ -3,7 +3,7 @@ export const brand = {
   tagline: 'Signature Hair Braiding & Nail Couture Studio',
   currency: 'GHS',
   currencySymbol: 'GH₵',
-  whatsappOwner: '0531806381',
+  whatsappOwner: '0559535682',
 } as const;
 
 export const tokens = {

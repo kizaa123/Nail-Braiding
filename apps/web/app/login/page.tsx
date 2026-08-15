@@ -6,6 +6,18 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/section';
+import {
+  STUDIO_OWNER_HINT,
+  pathForRole,
+  saveStudioSession,
+  signInStudioOwner,
+} from '@/lib/studio-session';
+import { StudioLogo } from '@/components/brand/studio-logo';
+
+type LoginUser = {
+  email: string;
+  role: string;
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,13 +27,16 @@ export default function LoginPage() {
   return (
     <div className="ambient-glow py-16 md:py-24">
       <Container className="max-w-lg">
-        <div className="rounded-3xl border border-ink/10 bg-paper/90 p-8 shadow-2xl backdrop-blur-xl md:p-12">
+        <div className="rounded-3xl border border-ink/10 bg-paper/90 p-5 shadow-2xl backdrop-blur-xl md:p-12">
           <div className="text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-champagne/30 bg-champagne/10 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-[#8C6D14]">
-              Noir Atelier Sign In
+            <StudioLogo href="/" size="md" mottoTone="dark" className="mx-auto" />
+            <span className="mt-6 inline-flex items-center gap-2 rounded-full border border-champagne/30 bg-champagne/10 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-[#8C6D14]">
+              Studio Owner Sign In
             </span>
-            <h1 className="mt-4 font-display text-4xl font-normal text-ink md:text-5xl">Welcome Back</h1>
-            <p className="mt-2 text-sm text-muted">Access your appointments, saved looks, and salon bookings.</p>
+            <h1 className="mt-4 font-display text-3xl font-normal text-ink md:text-5xl">Welcome Back</h1>
+            <p className="mt-2 text-sm text-muted">
+              Sign in to manage the atelier and bookings. Customers book as guests — no sign-in required.
+            </p>
           </div>
 
           <form
@@ -31,23 +46,37 @@ export default function LoginPage() {
               setError(null);
               setPending(true);
               const form = new FormData(e.currentTarget);
+              const email = String(form.get('email') ?? '');
+              const password = String(form.get('password') ?? '');
+
               try {
-                await api('/api/auth/login', {
+                const local = signInStudioOwner(email, password);
+                if (local) {
+                  router.push(pathForRole(local.role));
+                  router.refresh();
+                  return;
+                }
+
+                const result = await api<{ user: LoginUser }>('/api/auth/login', {
                   method: 'POST',
-                  body: JSON.stringify({
-                    email: String(form.get('email')),
-                    password: String(form.get('password')),
-                  }),
+                  body: JSON.stringify({ email, password }),
                 });
-                router.push('/account');
+                if (result.user.role === 'ADMIN' || result.user.role === 'PROFESSIONAL') {
+                  saveStudioSession({
+                    email: result.user.email,
+                    role: result.user.role,
+                    signedInAt: new Date().toISOString(),
+                  });
+                }
+                router.push(pathForRole(result.user.role));
                 router.refresh();
               } catch (err) {
                 const message = err instanceof Error ? err.message : 'Could not sign in.';
-                setError(
-                  message.includes('Failed to fetch') || message.includes('Cannot reach')
-                    ? 'Cannot reach the booking API. Keep this site on port 3000 and start the API on port 4000.'
-                    : message,
-                );
+                if (message.includes('Failed to fetch') || message.includes('Cannot reach')) {
+                  setError('Wrong email or password for studio owner sign-in.');
+                } else {
+                  setError(message);
+                }
               } finally {
                 setPending(false);
               }
@@ -61,26 +90,23 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 required
-                placeholder="name@example.com"
-                className="mt-2 min-h-13 w-full rounded-2xl border border-ink/10 bg-ivory px-4 text-sm text-ink placeholder:text-muted focus:border-champagne focus:bg-paper focus:outline-none transition-all"
+                defaultValue={STUDIO_OWNER_HINT.email}
+                placeholder={STUDIO_OWNER_HINT.email}
+                className="mt-2 min-h-13 w-full rounded-2xl border border-ink/10 bg-ivory px-4 text-sm text-ink placeholder:text-muted transition-all focus:border-champagne focus:bg-paper focus:outline-none"
               />
             </div>
 
             <div>
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-ink/80">
-                  Password
-                </label>
-                <Link href="/forgot-password" className="text-xs font-medium text-champagneMuted hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-ink/80">
+                Password
+              </label>
               <input
                 name="password"
                 type="password"
                 required
-                placeholder="••••••••••••"
-                className="mt-2 min-h-13 w-full rounded-2xl border border-ink/10 bg-ivory px-4 text-sm text-ink placeholder:text-muted focus:border-champagne focus:bg-paper focus:outline-none transition-all"
+                defaultValue={STUDIO_OWNER_HINT.password}
+                placeholder="Studio password"
+                className="mt-2 min-h-13 w-full rounded-2xl border border-ink/10 bg-ivory px-4 text-sm text-ink placeholder:text-muted transition-all focus:border-champagne focus:bg-paper focus:outline-none"
               />
             </div>
 
@@ -91,14 +117,21 @@ export default function LoginPage() {
             ) : null}
 
             <Button type="submit" disabled={pending} variant="gold" className="w-full">
-              {pending ? 'Signing in…' : 'Sign in to Atelier'}
+              {pending ? 'Signing in…' : 'Sign in to studio'}
             </Button>
           </form>
 
-          <div className="mt-8 border-t border-ink/8 pt-6 text-center text-xs text-muted">
-            Don’t have an account yet?{' '}
-            <Link href="/register" className="font-semibold text-ink underline hover:text-champagneMuted">
-              Create an account
+          <p className="mt-6 rounded-2xl border border-[#EADBCE] bg-ivory px-4 py-3 text-center text-[11px] leading-relaxed text-[#7A6E68]">
+            Studio owner login works without the booking API.
+            <span className="mt-1 block font-medium text-ink">
+              {STUDIO_OWNER_HINT.email} · {STUDIO_OWNER_HINT.password}
+            </span>
+          </p>
+
+          <div className="mt-6 border-t border-ink/8 pt-6 text-center text-xs text-muted">
+            Customers book as guests — no account required.{' '}
+            <Link href="/styles" className="font-semibold text-ink underline hover:text-champagneMuted">
+              Book an appointment
             </Link>
           </div>
         </div>
@@ -106,4 +139,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

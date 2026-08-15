@@ -35,7 +35,7 @@ export class WhatsAppService {
     }).format(input.scheduledAt);
 
     const message = [
-      `Hello ${input.professionalName} 👋🏾`,
+      `Hello ${input.professionalName}`,
       '',
       'I would like to book an appointment.',
       '',

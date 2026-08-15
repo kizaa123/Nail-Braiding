@@ -1,52 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --ivory: #F9F6F0;
-  --cream: #EFE6DA;
-  --paper: #FAFAF7;
-  --ink: #14110F;
-  --espresso: #1F1813;
-  --obsidian: #0F0C0A;
-  --muted: #7A6A5E;
-  --muted-light: #A39589;
-  --line: rgba(20, 17, 15, 0.09);
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body: 'Outfit', sans-serif;
+  --font-script: 'Pinyon Script', cursive;
+
+  /* 1. Primary Colors */
+  --brand-espresso: #171211;
+  --brand-cream: #F7F1EA;
+  
+  /* 2. Brand Accent */
+  --brand-rose: #D98282;
+  
+  /* 3. Secondary Colors */
+  --brand-chocolate: #3A2924;
+  --brand-soft-rose: #E9B4B0;
+  
+  /* 4. Premium Accent */
+  --brand-gold: #C9A46A;
+  
+  /* 5. Supporting Colors */
+  --brand-white: #FFFFFF;
+  --brand-taupe: #A99B95;
+  
+  /* Legacy mappings */
+  --ivory: #F7F1EA;
+  --cream: #F7F1EA;
+  --paper: #F7F1EA;
+  --ink: #171211;
+  --espresso: #171211;
+  --obsidian: #171211;
+  --muted: #A99B95;
+  --muted-light: #A99B95;
+  --line: rgba(23, 18, 17, 0.09);
   --line-dark: rgba(255, 255, 255, 0.12);
-  --champagne: #D4AF37;
-  --champagne-light: #F4E4BA;
-  --champagne-muted: #C4A574;
-  --blush: #E4CDB8;
-  --rose: #C85A5A;
-  --coral-accent: #D87D7D;
-  --coral-hover: #C66B6B;
+  --champagne: #C9A46A;
+  --champagne-light: #F7F1EA;
+  --champagne-muted: #C9A46A;
+  --blush: #E9B4B0;
+  --rose: #D98282;
+  --coral-accent: #D98282;
+  --coral-hover: #C56E6E;
   --emerald: #2D6A4F;
-  --gold-glow: rgba(212, 175, 55, 0.18);
-  --shadow-subtle: 0 4px 20px -2px rgba(20, 17, 15, 0.05);
-  --shadow-card: 0 12px 32px -4px rgba(20, 17, 15, 0.08);
-  --shadow-hover: 0 20px 40px -8px rgba(20, 17, 15, 0.14);
+  --shadow-subtle: 0 4px 20px -2px rgba(23, 18, 17, 0.05);
+  --shadow-card: 0 12px 32px -4px rgba(23, 18, 17, 0.08);
+  --shadow-hover: 0 20px 40px -8px rgba(23, 18, 17, 0.14);
 }
 
 @theme inline {
-  --color-ivory: var(--ivory);
-  --color-cream: var(--cream);
-  --color-paper: var(--paper);
-  --color-ink: var(--ink);
-  --color-espresso: var(--espresso);
-  --color-obsidian: var(--obsidian);
-  --color-muted: var(--muted);
-  --color-muted-light: var(--muted-light);
+  --color-brand-espresso: var(--brand-espresso);
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-rose: var(--brand-rose);
+  --color-brand-chocolate: var(--brand-chocolate);
+  --color-brand-soft-rose: var(--brand-soft-rose);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-white: var(--brand-white);
+  --color-brand-taupe: var(--brand-taupe);
+
+  --color-ivory: var(--brand-cream);
+  --color-cream: var(--brand-cream);
+  --color-paper: var(--brand-cream);
+  --color-ink: var(--brand-espresso);
+  --color-espresso: var(--brand-espresso);
+  --color-obsidian: var(--brand-espresso);
+  --color-muted: var(--brand-taupe);
+  --color-muted-light: var(--brand-taupe);
   --color-line: var(--line);
   --color-line-dark: var(--line-dark);
-  --color-champagne: var(--champagne);
-  --color-champagne-light: var(--champagne-light);
-  --color-champagne-muted: var(--champagne-muted);
-  --color-blush: var(--blush);
-  --color-rose: var(--rose);
-  --color-coral-accent: var(--coral-accent);
-  --color-coral-hover: var(--coral-hover);
+  --color-champagne: var(--brand-gold);
+  --color-champagne-light: var(--brand-soft-rose);
+  --color-champagne-muted: var(--brand-gold);
+  --color-blush: var(--brand-soft-rose);
+  --color-rose: var(--brand-rose);
+  --color-coral-accent: var(--brand-rose);
+  --color-coral-hover: #C56E6E;
   --color-emerald: var(--emerald);
-  --font-display: var(--font-display);
-  --font-sans: var(--font-body);
-  --font-script: var(--font-script);
+  --font-display: 'Cormorant Garamond', serif;
+  --font-sans: 'Outfit', sans-serif;
+  --font-script: 'Pinyon Script', cursive;
 }
 
 * {
@@ -59,8 +91,8 @@ html {
 
 html,
 body {
-  background: var(--ivory);
-  color: var(--ink);
+  background: var(--brand-cream);
+  color: var(--brand-espresso);
   min-height: 100vh;
 }
 
@@ -92,6 +124,18 @@ body {
   background: var(--champagne-muted);
 }
 
+.no-scrollbar,
+[role="dialog"] {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar,
+[role="dialog"]::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -106,7 +150,10 @@ textarea:focus-visible {
 }
 
 .font-script {
-  font-family: var(--font-script), "Alex Brush", "Great Vibes", cursive;
+  font-family: var(--font-script), 'Pinyon Script', 'Great Vibes', cursive;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.01em;
 }
 
 /* Glassmorphism utilities */
@@ -209,6 +256,139 @@ textarea:focus-visible {
   text-wrap: balance;
 }
 
+@keyframes booking-check-pop {
+  0% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes booking-check-circle {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes booking-check-mark {
+  0% {
+    stroke-dashoffset: 48;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes booking-check-ring {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+
+@keyframes booking-success-copy {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.booking-check {
+  animation: booking-check-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.booking-check-ring {
+  animation: booking-check-ring 0.9s ease-out 0.15s both;
+}
+
+.booking-check-circle {
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+  animation: booking-check-circle 0.55s ease-out 0.12s forwards;
+}
+
+.booking-check-mark {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: booking-check-mark 0.35s ease-out 0.52s forwards;
+}
+
+.booking-success-copy {
+  animation: booking-success-copy 0.4s ease-out 0.7s both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes admin-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-page-enter {
+  animation: admin-page-enter 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #eadfce;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.55) 50%, transparent 100%);
+  animation: skeleton-shimmer 1.45s ease-in-out infinite;
+}
+
+.skeleton-dark {
+  background: #2c221f;
+}
+
+.skeleton-dark::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.08) 50%, transparent 100%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -217,8 +397,21 @@ textarea:focus-visible {
   .marquee,
   .floaty,
   .img-zoom img,
-  .card-elevate {
+  .card-elevate,
+  .booking-check,
+  .booking-check-ring,
+  .booking-check-circle,
+  .booking-check-mark,
+  .booking-success-copy,
+  .page-enter,
+  .admin-page-enter,
+  .skeleton::after {
     animation: none !important;
     transition: none !important;
+  }
+
+  .booking-check-circle,
+  .booking-check-mark {
+    stroke-dashoffset: 0;
   }
 }

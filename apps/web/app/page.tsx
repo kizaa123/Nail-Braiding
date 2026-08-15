@@ -1,234 +1,155 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { api } from '@/lib/api';
 import { editorialImages } from '@/lib/content';
 import { Button } from '@/components/ui/button';
 import { Container, SectionHeading } from '@/components/ui/section';
-import { StyleCard } from '@/components/cards/cards';
 import { MarqueeGallery } from '@/components/home/marquee-gallery';
 import { HeroCarousel } from '@/components/home/hero-carousel';
-import { Reveal } from '@/components/motion/reveal';
-
-interface StyleRow {
-  id: string;
-  slug: string;
-  name: string;
-  categoryName: string;
-  imageUrl: string | null;
-  startingPriceMinor: number | null;
-}
-
-async function safeList<T>(path: string): Promise<T[]> {
-  try {
-    const result = await api<{ data: T[] }>(path, { next: { revalidate: 60 } });
-    return Array.isArray(result) ? result : result.data ?? [];
-  } catch {
-    return [];
-  }
-}
+import { Reveal, Stagger } from '@/components/motion/reveal';
+import { HomeStyleMenus } from '@/components/home/home-style-menus';
 
 export default async function HomePage() {
-  const [hair, nails] = await Promise.all([
-    safeList<StyleRow>('/api/styles?kind=HAIR&limit=8'),
-    safeList<StyleRow>('/api/styles?kind=NAILS&limit=8'),
-  ]);
-
   return (
     <>
-      {/* ── LUXÉ Beauty Studio Hero Carousel Section ─────────── */}
       <HeroCarousel />
 
-      {/* Category Selection Cards */}
-      <section className="py-12 bg-paper border-y border-ink/8">
+      <section className="bg-[#F7F1EA] py-10 text-[#171211] md:py-20">
         <Container>
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-champagne">Select Your Service Kind</span>
-            <h2 className="mt-2 font-display text-4xl font-normal text-ink">What kind of work do you want today?</h2>
-          </div>
-
-          <div className="grid gap-8 md:grid-cols-2">
-            {/* Category 1: Hair Braiding */}
-            <Link
-              href="/styles?kind=HAIR"
-              className="group relative overflow-hidden rounded-3xl border border-ink/10 bg-obsidian p-10 text-ivory shadow-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl"
-            >
-              <div className="relative z-10">
-                <span className="inline-block rounded-full bg-champagne/20 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-champagne">
-                  Category 01
+          <Reveal>
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <div className="mb-2 flex items-center justify-center gap-2">
+                <span className="text-[10px] text-[#D98282]">✦</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.25em] text-[#D98282]">
+                  SELECT YOUR SERVICE KIND
                 </span>
-                <h3 className="mt-6 font-display text-4xl md:text-5xl font-medium text-ivory group-hover:text-champagne transition-colors">
-                  Hair Braiding & Protective Styles
-                </h3>
-                <p className="mt-3 text-sm text-ivory/70 max-w-md leading-relaxed">
-                  Knotless braids, boho curls, fulani braids, goddess locs, and twists crafted by our studio specialists.
-                </p>
-                <div className="mt-8 flex items-center gap-2 font-semibold text-xs text-champagne uppercase tracking-wider">
-                  <span>Browse Braid Styles & Book →</span>
+                <span className="text-[10px] text-[#D98282]">✦</span>
+              </div>
+              <h2 className="font-display text-[1.85rem] font-medium leading-tight text-[#171211] md:text-5xl">
+                What kind of work <span className="ml-1 font-script text-[1.85rem] font-normal text-[#D98282] md:text-5xl">do you want today?</span>
+              </h2>
+            </div>
+          </Reveal>
+
+          <Stagger className="grid gap-5 lg:grid-cols-2 lg:gap-8">
+            <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-[#171211] text-white shadow-2xl transition-all duration-300 hover:-translate-y-1.5">
+              <div className="flex h-full min-h-0 flex-col md:grid md:min-h-[360px] md:grid-cols-2">
+                <div className="flex flex-col justify-between space-y-4 p-5 md:space-y-6 md:p-10">
+                  <div>
+                    <h3 className="font-display text-[1.65rem] font-normal leading-tight text-white md:text-4xl">
+                      Hair Braiding & Protective Styles
+                    </h3>
+                    <div className="my-3 h-px w-10 bg-[#D98282]/40 md:my-4" />
+                    <p className="text-xs font-light leading-relaxed text-[#A99B95] md:text-sm">
+                      Knotless, cornrow, box braid, and twist — styled in the studio.
+                    </p>
+                  </div>
+                  <div>
+                    <Link
+                      href="/styles?kind=HAIR"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#D98282] px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#D98282] transition-all hover:bg-[#D98282] hover:text-white active:scale-95 md:px-6 md:py-3"
+                    >
+                      <span>BROWSE BRAIDS & BOOK</span>
+                    </Link>
+                  </div>
+                </div>
+                {/* CHANGE BUILT-IN IMAGE: home Hair card — edit editorialImages.braids[0] in lib/content.ts */}
+                <div className="relative order-first h-56 w-full overflow-hidden sm:h-64 md:order-none md:h-auto md:min-h-full">
+                  <Image
+                    src={editorialImages.braids[0]!}
+                    alt="Hair Braiding & Protective Styles"
+                    fill
+                    className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, 40vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#171211]/70 via-transparent to-transparent md:bg-gradient-to-r md:from-[#171211]/50 md:via-transparent" />
                 </div>
               </div>
-            </Link>
+            </div>
 
-            {/* Category 2: Nail Couture */}
-            <Link
-              href="/styles?kind=NAILS"
-              className="group relative overflow-hidden rounded-3xl border border-ink/10 bg-espresso p-10 text-ivory shadow-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl"
-            >
-              <div className="relative z-10">
-                <span className="inline-block rounded-full bg-champagne/20 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-champagne">
-                  Category 02
-                </span>
-                <h3 className="mt-6 font-display text-4xl md:text-5xl font-medium text-ivory group-hover:text-champagne transition-colors">
-                  Nail Couture & Artistry
-                </h3>
-                <p className="mt-3 text-sm text-ivory/70 max-w-md leading-relaxed">
-                  Chrome polish, classic french tips, gel-x extensions, acrylic overlay, and organic almond shapes.
-                </p>
-                <div className="mt-8 flex items-center gap-2 font-semibold text-xs text-champagne uppercase tracking-wider">
-                  <span>Browse Nail Styles & Book →</span>
+            <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-[#171211] text-white shadow-2xl transition-all duration-300 hover:-translate-y-1.5">
+              <div className="flex h-full min-h-0 flex-col md:grid md:min-h-[360px] md:grid-cols-2">
+                <div className="flex flex-col justify-between space-y-4 p-5 md:space-y-6 md:p-10">
+                  <div>
+                    <h3 className="font-display text-[1.65rem] font-normal leading-tight text-[#C9A46A] md:text-4xl">
+                      Nail Couture & Artistry
+                    </h3>
+                    <div className="my-3 h-px w-10 bg-[#C9A46A]/40 md:my-4" />
+                    <p className="text-xs font-light leading-relaxed text-[#A99B95] md:text-sm">
+                      Studio nail work to finish the look — classic, chrome, and custom art.
+                    </p>
+                  </div>
+                  <div>
+                    <Link
+                      href="/styles?kind=NAILS"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#C9A46A] px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#C9A46A] transition-all hover:bg-[#C9A46A] hover:text-white active:scale-95 md:px-6 md:py-3"
+                    >
+                      <span>BROWSE NAILS & BOOK</span>
+                    </Link>
+                  </div>
+                </div>
+                {/* CHANGE BUILT-IN IMAGE: home Nails card — edit editorialImages.nails[0] in lib/content.ts */}
+                <div className="relative order-first h-56 w-full overflow-hidden sm:h-64 md:order-none md:h-auto md:min-h-full">
+                  <Image
+                    src={editorialImages.nails[0]!}
+                    alt="Nail Couture & Artistry"
+                    fill
+                    className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, 40vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#171211]/70 via-transparent to-transparent md:bg-gradient-to-r md:from-[#171211]/50 md:via-transparent" />
                 </div>
               </div>
-            </Link>
-          </div>
+            </div>
+          </Stagger>
+
+          <Stagger className="mt-16 grid grid-cols-1 gap-8 border-t border-[#3A2924]/15 pt-10 sm:grid-cols-3" delay={0.05}>
+            {[
+              ['EASY BOOKING', 'Book your appointment in a few simple steps.', 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'],
+              ['TOP SPECIALISTS', 'Certified professionals you can trust.', 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'],
+              ['QUALITY SERVICE', 'Premium products and careful technique.', 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'],
+            ].map(([title, body, path]) => (
+              <div key={title} className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E9B4B0]/30 text-[#D98282]">
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d={path} />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#171211]">{title}</h4>
+                  <p className="mt-1 text-xs font-light text-[#A99B95]">{body}</p>
+                </div>
+              </div>
+            ))}
+          </Stagger>
         </Container>
       </section>
 
-      {/* Hair Styles Section */}
+      <HomeStyleMenus />
+
       <Reveal>
-        <Container className="py-16 md:py-24">
-          <SectionHeading
-            eyebrow="Studio Menu · Hair"
-            title="Hair braiding artistry."
-            body="Select a style below to pick your date and time for booking."
-            action={
-              <Button href="/styles?kind=HAIR" variant="outline">
-                View All Braids →
-              </Button>
-            }
-          />
-          <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
-            {(hair.length ? hair : fallbackStyles()).slice(0, 4).map((style) => (
-              <StyleCard
-                key={`hair-${style.slug}`}
-                href={`/styles/${style.slug}`}
-                image={style.imageUrl ?? editorialImages.braids[0]!}
-                name={style.name}
-                category={style.categoryName}
-                priceMinor={style.startingPriceMinor}
-              />
-            ))}
-          </div>
-        </Container>
+        <section className="py-16">
+          <Container>
+            <SectionHeading eyebrow="Studio Lookbook" title="Noir Atelier signature gallery." body="Images of recent hair braiding and nail couture work." center />
+          </Container>
+          <MarqueeGallery />
+        </section>
       </Reveal>
 
-      {/* Nails Section */}
       <Reveal>
-        <Container className="py-8 md:py-16">
-          <SectionHeading
-            eyebrow="Studio Menu · Nails"
-            title="Nail couture & artistry."
-            body="High-fashion nail design, French tips, and chrome finishes."
-            action={
-              <Button href="/styles?kind=NAILS" variant="outline">
-                View All Nails →
+        <section className="ambient-glow py-16 text-center md:py-28">
+          <Container className="max-w-3xl">
+            <p className="font-display text-3xl font-light leading-tight text-ink md:text-7xl">
+              Book your next <span className="italic text-champagneMuted">signature appointment.</span>
+            </p>
+            <p className="mt-4 text-lg text-muted">Pick your style, date, and time — delivered straight to the shop owner.</p>
+            <div className="mt-9 flex justify-center gap-4">
+              <Button href="/styles" variant="gold">
+                Book Appointment Now
               </Button>
-            }
-          />
-          <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
-            {(nails.length ? nails : fallbackNails()).map((style) => (
-              <StyleCard
-                key={`nail-${style.slug}`}
-                href={`/styles/${style.slug}`}
-                image={style.imageUrl ?? editorialImages.nails[0]!}
-                name={style.name}
-                category={style.categoryName}
-                priceMinor={style.startingPriceMinor}
-              />
-            ))}
-          </div>
-        </Container>
+            </div>
+          </Container>
+        </section>
       </Reveal>
-
-      {/* Booking Destination Guide */}
-      <section className="my-16 bg-obsidian py-24 text-ivory">
-        <Container>
-          <SectionHeading
-            eyebrow="Direct Studio Destination"
-            title="How your booking reaches the shop owner."
-            body="Choose how you prefer your booking reservation to be delivered when you check out."
-            dark
-          />
-          <div className="grid gap-8 md:grid-cols-2">
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-md">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">🏛️</span>
-                <span className="font-display text-2xl font-medium text-ivory">Destination 1: Admin Portal</span>
-              </div>
-              <p className="mt-4 text-sm text-ivory/70 leading-relaxed">
-                Saves your appointment directly into the shop owner's Noir Atelier Admin Portal database. The owner can view, manage, and confirm your appointment from their executive dashboard.
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-[#128C7E]/40 bg-[#128C7E]/10 p-8 backdrop-blur-md">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">💬</span>
-                <span className="font-display text-2xl font-medium text-ivory">Destination 2: Owner WhatsApp (0531806381)</span>
-              </div>
-              <p className="mt-4 text-sm text-ivory/70 leading-relaxed">
-                Sends your pre-formatted booking details (Service, Date, Time, Price, Reference Code) directly to the shop owner's WhatsApp account (<span className="font-semibold text-white">0531806381</span>) for instant chat confirmation.
-              </p>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* Marquee Gallery */}
-      <section className="py-16">
-        <Container>
-          <SectionHeading eyebrow="Studio Lookbook" title="Noir Atelier signature gallery." body="Images of recent hair braiding and nail couture work." center />
-        </Container>
-        <MarqueeGallery />
-      </section>
-
-      {/* Bottom CTA */}
-      <section className="py-28 text-center ambient-glow">
-        <Container className="max-w-3xl">
-          <p className="font-display text-5xl md:text-7xl font-light text-ink leading-tight">
-            Book your next <span className="italic text-champagneMuted">signature appointment.</span>
-          </p>
-          <p className="mt-4 text-muted text-lg">Pick your style, date, and time — delivered straight to the shop owner.</p>
-          <div className="mt-9 flex justify-center gap-4">
-            <Button href="/discover" variant="gold">
-              Book Appointment Now
-            </Button>
-            <Button
-              href={`https://wa.me/233531806381?text=${encodeURIComponent('Hello Noir Atelier Studio! I want to book an appointment.')}`}
-              variant="whatsapp"
-            >
-              💬 WhatsApp 0531806381
-            </Button>
-          </div>
-        </Container>
-      </section>
     </>
   );
 }
-
-function fallbackStyles(): StyleRow[] {
-  return [
-    { id: '1', slug: 'knotless-braids', name: 'Knotless Braids', categoryName: 'Braids', imageUrl: editorialImages.braids[0]!, startingPriceMinor: 35000 },
-    { id: '2', slug: 'boho-braids', name: 'Boho Braids', categoryName: 'Braids', imageUrl: editorialImages.braids[1]!, startingPriceMinor: 48000 },
-    { id: '3', slug: 'goddess-braids', name: 'Goddess Braids', categoryName: 'Braids', imageUrl: editorialImages.braids[2]!, startingPriceMinor: 40000 },
-    { id: '4', slug: 'fulani-braids', name: 'Fulani Braids', categoryName: 'Braids', imageUrl: editorialImages.braids[3]!, startingPriceMinor: 38000 },
-  ];
-}
-
-function fallbackNails(): StyleRow[] {
-  return [
-    { id: 'n1', slug: 'french-tips', name: 'French Tips', categoryName: 'Nail Styles', imageUrl: editorialImages.nails[0]!, startingPriceMinor: 18000 },
-    { id: 'n2', slug: 'chrome', name: 'Chrome', categoryName: 'Nail Styles', imageUrl: editorialImages.nails[1]!, startingPriceMinor: 22000 },
-    { id: 'n3', slug: 'cat-eye', name: 'Cat Eye', categoryName: 'Nail Styles', imageUrl: editorialImages.nails[2]!, startingPriceMinor: 20000 },
-    { id: 'n4', slug: 'almond', name: 'Almond', categoryName: 'Nail Shapes', imageUrl: editorialImages.nails[3]!, startingPriceMinor: 16000 },
-  ];
-}
-
-
