@@ -6,9 +6,10 @@ import { StyleCard } from '@/components/cards/cards';
 import { Reveal, Stagger } from '@/components/motion/reveal';
 import { useStudioCatalog } from '@/hooks/use-studio-catalog';
 import { StyleCardSkeleton } from '@/components/ui/skeleton';
+import type { StudioStyle } from '@/lib/studio-styles';
 
-export function HomeStyleMenus() {
-  const { publicStyles, ready } = useStudioCatalog();
+export function HomeStyleMenus({ initialStyles = [] }: { initialStyles?: StudioStyle[] }) {
+  const { publicStyles, ready } = useStudioCatalog(initialStyles);
   const hair = publicStyles.filter((style) => style.kind === 'HAIR').slice(0, 4);
   const nails = publicStyles.filter((style) => style.kind === 'NAILS').slice(0, 4);
 

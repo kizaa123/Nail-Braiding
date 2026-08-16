@@ -61,6 +61,18 @@ insert into storage.buckets (id, name, public)
 values ('studio-looks', 'studio-looks', true)
 on conflict (id) do nothing;
 
+drop policy if exists "Public read published styles" on studio_styles;
+create policy "Public read published styles"
+on studio_styles for select
+to public
+using (published = true and archived = false);
+
+drop policy if exists "Public read studio categories" on studio_categories;
+create policy "Public read studio categories"
+on studio_categories for select
+to public
+using (true);
+
 drop policy if exists "Public read studio looks" on storage.objects;
 create policy "Public read studio looks"
 on storage.objects for select

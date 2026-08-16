@@ -8,7 +8,6 @@ import {
   deleteStudioStyle,
   patchStudioStyle,
   restoreStudioStyle,
-  studioCloudEnabled,
   upsertStudioStyle,
   type StyleDraft,
   type StudioStyle,
@@ -26,9 +25,15 @@ export default function AdminStylesPage() {
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<StudioStyle | null | undefined>(undefined);
   const [cloud, setCloud] = useState<boolean | null>(null);
+  const [missing, setMissing] = useState<string[]>([]);
 
   useEffect(() => {
-    void studioCloudEnabled().then(setCloud);
+    void (async () => {
+      const { studioRequest } = await import('@/lib/studio-http');
+      const result = await studioRequest<{ cloud?: boolean; missing?: string[] }>('/api/studio/health');
+      setCloud(Boolean(result.ok && result.data?.cloud));
+      setMissing(result.data?.missing ?? []);
+    })();
   }, []);
 
   const rows = useMemo(() => {
@@ -63,7 +68,9 @@ export default function AdminStylesPage() {
           </p>
           {cloud === false ? (
             <p className="mt-3 rounded-2xl border border-[#D98282]/30 bg-[#D98282]/10 px-4 py-3 text-sm text-[#171211]">
-              Shared catalog is not connected yet. Looks stay on this device only. Add the Supabase keys, then sign in again.
+              Looks saved here stay on this laptop only, so a phone will not see them. In Vercel, for both
+              nail-braiding-web projects, add {missing.length ? missing.join(' and ') : 'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY'},
+              redeploy, sign in on the live site, then save each look once more.
             </p>
           ) : null}
           {cloud === true ? (

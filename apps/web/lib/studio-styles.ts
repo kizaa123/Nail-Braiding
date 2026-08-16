@@ -39,6 +39,14 @@ export type StyleDraft = {
   published: boolean;
 };
 
+export function allowLocalCatalog() {
+  if (typeof window === 'undefined') return false;
+  return /localhost|127\.0\.0\.1/.test(window.location.hostname);
+}
+
+export const CLOUD_REQUIRED_MESSAGE =
+  'Shared catalog is not connected. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on Vercel, redeploy, then sign in and save the look again.';
+
 function notify() {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new Event(STUDIO_STYLES_EVENT));
@@ -221,8 +229,8 @@ export async function fileToStyleImage(file: File) {
   if (health.data?.cloud) {
     throw new Error(result.data?.error || 'Could not upload photo for all customers. Sign in again and retry.');
   }
-  if (!cloudMissing(result.status, result.data)) {
-    throw new Error(result.data?.error || 'Could not upload photo.');
+  if (!cloudMissing(result.status, result.data) || !allowLocalCatalog()) {
+    throw new Error(result.data?.error || CLOUD_REQUIRED_MESSAGE);
   }
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -239,11 +247,15 @@ function mergeStyle(style: StudioStyle) {
 
 export async function fetchStudioStyles() {
   const { studioRequest } = await import('@/lib/studio-http');
-  const result = await studioRequest<{ styles?: StudioStyle[]; cloud?: boolean }>('/api/studio/styles?scope=all');
+  const admin = Boolean((await import('@/lib/studio-session')).readStudioWriteToken());
+  const result = await studioRequest<{ styles?: StudioStyle[]; cloud?: boolean }>(
+    admin ? '/api/studio/styles?scope=all' : '/api/studio/styles',
+  );
   if (result.ok && Array.isArray(result.data?.styles)) {
     saveStudioStyles(result.data.styles);
     return result.data.styles;
   }
+  if (!allowLocalCatalog()) return [];
   return listStudioStyles();
 }
 
@@ -317,10 +329,10 @@ export async function upsertStudioStyle(draft: StyleDraft) {
     mergeStyle(result.data.style);
     return result.data.style;
   }
-  if (cloudMissing(result.status, result.data)) {
+  if (cloudMissing(result.status, result.data) && allowLocalCatalog()) {
     return upsertStudioStyleLocal(draft);
   }
-  throw new Error(result.data?.error || 'Could not save look for all customers. Sign in again and retry.');
+  throw new Error(result.data?.error || CLOUD_REQUIRED_MESSAGE);
 }
 
 export async function patchStudioStyle(id: string, patch: Partial<StudioStyle>) {
@@ -333,11 +345,11 @@ export async function patchStudioStyle(id: string, patch: Partial<StudioStyle>) 
     mergeStyle(result.data.style);
     return result.data.style;
   }
-  if (cloudMissing(result.status, result.data)) {
+  if (cloudMissing(result.status, result.data) && allowLocalCatalog()) {
     patchStudioStyleLocal(id, patch);
     return;
   }
-  throw new Error(result.data?.error || 'Could not update look for all customers. Sign in again and retry.');
+  throw new Error(result.data?.error || CLOUD_REQUIRED_MESSAGE);
 }
 
 export async function archiveStudioStyle(id: string) {
@@ -351,9 +363,13 @@ export async function restoreStudioStyle(id: string) {
 export async function deleteStudioStyle(id: string) {
   const { studioRequest, cloudMissing } = await import('@/lib/studio-http');
   const result = await studioRequest<{ error?: string; cloud?: boolean }>(`/api/studio/styles/${id}`, { method: 'DELETE' });
-  if (result.ok || cloudMissing(result.status, result.data)) {
+  if (result.ok) {
     deleteStudioStyleLocal(id);
     return;
   }
-  throw new Error(result.data?.error || 'Could not delete look.');
+  if (cloudMissing(result.status, result.data) && allowLocalCatalog()) {
+    deleteStudioStyleLocal(id);
+    return;
+  }
+  throw new Error(result.data?.error || CLOUD_REQUIRED_MESSAGE);
 }

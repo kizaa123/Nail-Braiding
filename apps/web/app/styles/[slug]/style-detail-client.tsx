@@ -8,9 +8,10 @@ import { Reveal } from '@/components/motion/reveal';
 import { CatalogImage } from '@/components/ui/catalog-image';
 import { StyleDetailSkeleton } from '@/components/ui/skeleton';
 import { useStudioCatalog } from '@/hooks/use-studio-catalog';
+import type { StudioStyle } from '@/lib/studio-styles';
 
-export function StyleDetailClient({ slug }: { slug: string }) {
-  const { publicStyles, ready } = useStudioCatalog();
+export function StyleDetailClient({ slug, initialStyles = [] }: { slug: string; initialStyles?: StudioStyle[] }) {
+  const { publicStyles, ready } = useStudioCatalog(initialStyles);
   const style = publicStyles.find((item) => item.slug === slug);
 
   if (!ready) return <StyleDetailSkeleton />;

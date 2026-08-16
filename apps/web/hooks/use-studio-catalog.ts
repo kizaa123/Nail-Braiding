@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   STUDIO_STYLES_EVENT,
+  allowLocalCatalog,
   fetchStudioStyles,
   listStudioStyles,
   syncLocalStylesToCloud,
@@ -10,22 +11,34 @@ import {
 } from '@/lib/studio-styles';
 import { readStudioWriteToken } from '@/lib/studio-session';
 
-export function useStudioCatalog() {
-  const [styles, setStyles] = useState<StudioStyle[]>([]);
-  const [ready, setReady] = useState(false);
+export function useStudioCatalog(initialStyles: StudioStyle[] = []) {
+  const seed = useRef(initialStyles);
+  if (initialStyles.length) seed.current = initialStyles;
+  const [styles, setStyles] = useState<StudioStyle[]>(initialStyles);
+  const [ready, setReady] = useState(initialStyles.length > 0);
 
   useEffect(() => {
     let active = true;
-    const refresh = () => setStyles(listStudioStyles());
-    refresh();
-    setReady(true);
+    const apply = (rows: StudioStyle[]) => {
+      if (!active) return;
+      if (rows.length) {
+        setStyles(rows);
+      } else if (allowLocalCatalog()) {
+        setStyles(listStudioStyles());
+      } else {
+        setStyles(seed.current);
+      }
+      setReady(true);
+    };
     void (async () => {
       if (readStudioWriteToken()) {
         await syncLocalStylesToCloud();
       }
-      const rows = await fetchStudioStyles();
-      if (active) setStyles(rows);
+      apply(await fetchStudioStyles());
     })();
+    const refresh = () => {
+      void fetchStudioStyles().then(apply);
+    };
     window.addEventListener(STUDIO_STYLES_EVENT, refresh);
     window.addEventListener('storage', refresh);
     return () => {

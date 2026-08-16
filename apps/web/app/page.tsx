@@ -7,8 +7,12 @@ import { MarqueeGallery } from '@/components/home/marquee-gallery';
 import { HeroCarousel } from '@/components/home/hero-carousel';
 import { Reveal, Stagger } from '@/components/motion/reveal';
 import { HomeStyleMenus } from '@/components/home/home-style-menus';
+import { loadPublicStyles } from '@/lib/public-catalog';
+
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
+  const initialStyles = await loadPublicStyles();
   return (
     <>
       <HeroCarousel />
@@ -120,7 +124,7 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      <HomeStyleMenus />
+      <HomeStyleMenus initialStyles={initialStyles} />
 
       <Reveal>
         <section className="py-16">
