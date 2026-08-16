@@ -14,8 +14,8 @@ import { readStudioWriteToken } from '@/lib/studio-session';
 export function useStudioCatalog(initialStyles: StudioStyle[] = []) {
   const seed = useRef(initialStyles);
   if (initialStyles.length) seed.current = initialStyles;
-  const [styles, setStyles] = useState<StudioStyle[]>(initialStyles);
-  const [ready, setReady] = useState(initialStyles.length > 0);
+  const [styles, setStyles] = useState<StudioStyle[]>(() => initialStyles);
+  const [ready, setReady] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -24,20 +24,31 @@ export function useStudioCatalog(initialStyles: StudioStyle[] = []) {
       if (rows.length) {
         setStyles(rows);
       } else if (allowLocalCatalog()) {
-        setStyles(listStudioStyles());
+        const local = listStudioStyles();
+        setStyles(local.length ? local : seed.current);
       } else {
         setStyles(seed.current);
       }
       setReady(true);
     };
+    apply(seed.current.length ? seed.current : listStudioStyles());
     void (async () => {
-      if (readStudioWriteToken()) {
-        await syncLocalStylesToCloud();
+      try {
+        apply(await fetchStudioStyles());
+      } catch {
+        apply(listStudioStyles());
       }
-      apply(await fetchStudioStyles());
+      if (readStudioWriteToken()) {
+        void syncLocalStylesToCloud()
+          .then(() => fetchStudioStyles())
+          .then(apply)
+          .catch(() => undefined);
+      }
     })();
     const refresh = () => {
-      void fetchStudioStyles().then(apply);
+      const local = listStudioStyles();
+      if (local.length) apply(local);
+      void fetchStudioStyles().then(apply).catch(() => apply(local));
     };
     window.addEventListener(STUDIO_STYLES_EVENT, refresh);
     window.addEventListener('storage', refresh);
