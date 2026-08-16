@@ -76,14 +76,32 @@ export function getStudioSql() {
     idle_timeout: 20,
     connect_timeout: 15,
     prepare: false,
-    ssl: shouldUseSsl(url) ? 'require' : undefined,
+    ssl: shouldUseSsl(url) ? { rejectUnauthorized: false } : undefined,
   });
   return client;
 }
 
+function errorText(error: unknown) {
+  if (!error) return 'Database error';
+  if (typeof error === 'string') return error;
+  if (error instanceof Error && error.message && error.message !== '[object Object]') {
+    return error.message;
+  }
+  if (typeof error === 'object') {
+    const row = error as Record<string, unknown>;
+    const parts = [row.message, row.detail, row.hint, row.code].filter(Boolean).map(String);
+    if (parts.length) return parts.join(' — ');
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return 'Database error';
+    }
+  }
+  return String(error);
+}
+
 export function sanitizeDbError(error: unknown) {
-  const raw = error instanceof Error ? error.message : String(error ?? 'Database error');
-  return raw
+  return errorText(error)
     .replace(/:[^:@/]+@/g, ':****@')
     .replace(/password=[^&\s]+/gi, 'password=****')
     .slice(0, 280);
