@@ -52,6 +52,12 @@ export default function LoginPage() {
               try {
                 const local = signInStudioOwner(email, password);
                 if (local) {
+                  await fetch('/api/studio/session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password }),
+                  }).catch(() => null);
                   router.push(pathForRole(local.role));
                   router.refresh();
                   return;

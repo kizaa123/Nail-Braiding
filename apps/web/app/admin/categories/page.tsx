@@ -32,15 +32,15 @@ export default function AdminCategoriesPage() {
     return map;
   }, [styles]);
 
-  const add = (kind: StyleKind) => {
-    const result = addStudioCategory(kind, drafts[kind]);
+  const add = async (kind: StyleKind) => {
+    const result = await addStudioCategory(kind, drafts[kind]);
     setMessage(result.ok ? null : result.message ?? null);
     if (result.ok) setDrafts((current) => ({ ...current, [kind]: '' }));
   };
 
-  const saveRename = () => {
+  const saveRename = async () => {
     if (!editing) return;
-    const result = renameStudioCategory(editing.kind, editing.name, editValue);
+    const result = await renameStudioCategory(editing.kind, editing.name, editValue);
     setMessage(result.ok ? null : result.message ?? null);
     if (result.ok) setEditing(null);
   };
@@ -149,8 +149,8 @@ export default function AdminCategoriesPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              const result = deleteStudioCategory(kind.id, name);
+                            onClick={async () => {
+                              const result = await deleteStudioCategory(kind.id, name);
                               setMessage(result.ok ? null : result.message ?? null);
                             }}
                             className="rounded-full border border-[#D98282]/40 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#D98282]"

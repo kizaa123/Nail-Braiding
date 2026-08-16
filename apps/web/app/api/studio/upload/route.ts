@@ -1,0 +1,27 @@
+import { NextResponse } from 'next/server';
+import { cloudUnavailable, requireStudioAdmin, unauthorized } from '@/lib/studio-auth';
+import { studioCloudConfigured } from '@/lib/supabase-admin';
+import { dbUploadLook } from '@/lib/studio-db';
+
+export const dynamic = 'force-dynamic';
+
+export async function POST(request: Request) {
+  if (!studioCloudConfigured()) return cloudUnavailable();
+  if (!(await requireStudioAdmin())) return unauthorized();
+  const form = await request.formData().catch(() => null);
+  const file = form?.get('file');
+  if (!(file instanceof File) || file.size < 20) {
+    return NextResponse.json({ error: 'Choose a photo to upload.' }, { status: 400 });
+  }
+  if (file.size > 6 * 1024 * 1024) {
+    return NextResponse.json({ error: 'Photo is too large. Use a smaller image.' }, { status: 400 });
+  }
+  try {
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const url = await dbUploadLook(bytes, file.type || 'image/jpeg');
+    return NextResponse.json({ url });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not upload photo.';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

@@ -49,9 +49,13 @@ export function clearStudioSession() {
   notify();
 }
 
-export function signInStudioOwner(email: string, password: string): StudioSession | null {
+export function verifyStudioOwner(email: string, password: string) {
   const normalized = email.trim().toLowerCase();
-  const match = STUDIO_OWNERS.find((owner) => owner.email === normalized && owner.password === password);
+  return STUDIO_OWNERS.find((owner) => owner.email === normalized && owner.password === password) ?? null;
+}
+
+export function signInStudioOwner(email: string, password: string): StudioSession | null {
+  const match = verifyStudioOwner(email, password);
   if (!match) return null;
   const session: StudioSession = {
     email: match.email,

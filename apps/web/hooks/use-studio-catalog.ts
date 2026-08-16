@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   STUDIO_STYLES_EVENT,
+  fetchStudioStyles,
   listStudioStyles,
   type StudioStyle,
 } from '@/lib/studio-styles';
@@ -12,12 +13,17 @@ export function useStudioCatalog() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    let active = true;
     const refresh = () => setStyles(listStudioStyles());
     refresh();
     setReady(true);
+    void fetchStudioStyles().then((rows) => {
+      if (active) setStyles(rows);
+    });
     window.addEventListener(STUDIO_STYLES_EVENT, refresh);
     window.addEventListener('storage', refresh);
     return () => {
+      active = false;
       window.removeEventListener(STUDIO_STYLES_EVENT, refresh);
       window.removeEventListener('storage', refresh);
     };

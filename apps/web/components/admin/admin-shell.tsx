@@ -115,9 +115,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     clearStudioSession();
     try {
-      await api('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/studio/session', { method: 'DELETE', credentials: 'include' });
     } catch {
       // Local studio session is enough.
+    }
+    try {
+      await api('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // Optional booking API logout.
     }
     window.location.href = '/';
   };

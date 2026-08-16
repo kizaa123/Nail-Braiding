@@ -13,6 +13,7 @@
   "dependencies": {
     "@beauty/types": "0.1.0",
     "@beauty/validation": "0.1.0",
+    "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.76.1",
     "framer-motion": "^12.12.1",
     "next": "^15.5.9",

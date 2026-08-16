@@ -51,18 +51,37 @@ export function saveStudioCategories(categories: StudioCategoryMap) {
   notify();
 }
 
-export function addStudioCategory(kind: StyleKind, name: string) {
+async function persistCategories(categories: StudioCategoryMap, rename?: { kind: StyleKind; from: string; to: string }) {
+  saveStudioCategories(categories);
+  const { studioRequest } = await import('@/lib/studio-http');
+  await studioRequest('/api/studio/categories', {
+    method: 'PUT',
+    body: JSON.stringify({ categories, rename }),
+  });
+}
+
+export async function fetchStudioCategories() {
+  const { studioRequest } = await import('@/lib/studio-http');
+  const result = await studioRequest<{ categories?: StudioCategoryMap }>('/api/studio/categories');
+  if (result.ok && result.data?.categories) {
+    saveStudioCategories(result.data.categories);
+    return result.data.categories;
+  }
+  return listStudioCategories();
+}
+
+export async function addStudioCategory(kind: StyleKind, name: string) {
   const nextName = cleanName(name);
   if (!nextName) return { ok: false, message: 'Enter a category name.' };
   const categories = listStudioCategories();
   const exists = [...categories.HAIR, ...categories.NAILS].some((item) => item.toLowerCase() === nextName.toLowerCase());
   if (exists) return { ok: false, message: 'That category already exists.' };
   categories[kind] = [...categories[kind], nextName];
-  saveStudioCategories(categories);
+  await persistCategories(categories);
   return { ok: true, name: nextName };
 }
 
-export function renameStudioCategory(kind: StyleKind, from: string, to: string) {
+export async function renameStudioCategory(kind: StyleKind, from: string, to: string) {
   const nextName = cleanName(to);
   if (!nextName) return { ok: false, message: 'Enter a category name.' };
   const categories = listStudioCategories();
@@ -72,21 +91,21 @@ export function renameStudioCategory(kind: StyleKind, from: string, to: string) 
   );
   if (clash) return { ok: false, message: 'That category already exists.' };
   categories[kind] = categories[kind].map((item) => (item === from ? nextName : item));
-  saveStudioCategories(categories);
   if (from !== nextName) {
     saveStudioStyles(
       listStudioStyles().map((style) => (style.categoryName === from ? { ...style, categoryName: nextName } : style)),
     );
   }
+  await persistCategories(categories, from !== nextName ? { kind, from, to: nextName } : undefined);
   return { ok: true, name: nextName };
 }
 
-export function deleteStudioCategory(kind: StyleKind, name: string) {
+export async function deleteStudioCategory(kind: StyleKind, name: string) {
   const categories = listStudioCategories();
   if (categories[kind].length <= 1) return { ok: false, message: 'Keep at least one category for this service.' };
   const used = listStudioStyles().filter((style) => style.categoryName === name).length;
   if (used) return { ok: false, message: `${used} ${used === 1 ? 'style uses' : 'styles use'} this category. Move them first.` };
   categories[kind] = categories[kind].filter((item) => item !== name);
-  saveStudioCategories(categories);
+  await persistCategories(categories);
   return { ok: true };
 }

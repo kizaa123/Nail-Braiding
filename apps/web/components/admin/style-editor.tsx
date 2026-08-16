@@ -61,12 +61,13 @@ export function StyleEditorModal({
   open: boolean;
   style: StudioStyle | null;
   onClose: () => void;
-  onSave: (draft: StyleDraft) => void;
+  onSave: (draft: StyleDraft) => void | Promise<void>;
 }) {
   const { categories } = useStudioCategories();
   const [draft, setDraft] = useState<StyleDraft>(emptyDraft());
   const [mounted, setMounted] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -96,6 +97,8 @@ export function StyleEditorModal({
     try {
       const imageUrl = await fileToStyleImage(file);
       setDraft((current) => ({ ...current, imageUrl }));
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Could not upload that photo.');
     } finally {
       setUploading(false);
     }
@@ -147,20 +150,27 @@ export function StyleEditorModal({
 
         <form
           className="min-h-0 flex-1 space-y-3.5 overflow-y-auto px-4 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-5"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault();
-            if (!canSave) return;
-            onSave({
-              ...draft,
-              location: 'Cape Coast, UCC Campus',
-              artistIds: style?.artistIds ?? [],
-            });
+            if (!canSave || saving) return;
+            setSaving(true);
+            try {
+              await onSave({
+                ...draft,
+                location: 'Cape Coast, UCC Campus',
+                artistIds: style?.artistIds ?? [],
+              });
+            } catch (error) {
+              window.alert(error instanceof Error ? error.message : 'Could not save this look.');
+            } finally {
+              setSaving(false);
+            }
           }}
         >
           <input
             ref={fileRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/*,image/jpeg,image/png,image/webp,image/heic"
             className="sr-only"
             onChange={(event) => {
               void onPickImage(event.target.files?.[0]);
@@ -312,10 +322,10 @@ export function StyleEditorModal({
 
           <button
             type="submit"
-            disabled={!canSave || uploading}
+            disabled={!canSave || uploading || saving}
             className="min-h-11 w-full rounded-xl bg-[#C9A46A] text-[10px] font-bold uppercase tracking-[0.16em] text-[#171211] transition-opacity disabled:opacity-40"
           >
-            {style ? 'Save changes' : 'Add look'}
+            {saving ? 'Saving…' : style ? 'Save changes' : 'Add look'}
           </button>
           {draft.published && !draft.imageUrl ? (
             <p className="text-center text-[11px] text-[#D98282]">Add a photo before publishing.</p>

@@ -365,6 +365,12 @@ export function patchStudioBooking(id: string, patch: Partial<StudioBooking>) {
   saveStudioBookings(
     listStudioBookings().map((booking) => (booking.id === id ? { ...booking, ...patch } : booking)),
   );
+  void import('@/lib/studio-http').then(({ studioRequest }) =>
+    studioRequest(`/api/studio/bookings/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+  );
 }
 
 export function deleteStudioBooking(id: string) {
@@ -405,6 +411,22 @@ export function createStudioBooking(input: {
   };
   if (input.destination === 'PORTAL') {
     saveStudioBooking(booking);
+    void import('@/lib/studio-http').then(({ studioRequest }) =>
+      studioRequest('/api/studio/bookings', {
+        method: 'POST',
+        body: JSON.stringify(booking),
+      }),
+    );
   }
   return booking;
+}
+
+export async function fetchStudioBookings() {
+  const { studioRequest } = await import('@/lib/studio-http');
+  const result = await studioRequest<{ bookings?: StudioBooking[] }>('/api/studio/bookings');
+  if (result.ok && Array.isArray(result.data?.bookings)) {
+    saveStudioBookings(result.data.bookings.map(normalizeBooking));
+    return listStudioBookings();
+  }
+  return listStudioBookings();
 }

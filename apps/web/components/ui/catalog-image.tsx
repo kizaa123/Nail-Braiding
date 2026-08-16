@@ -19,9 +19,9 @@ export function CatalogImage({
     return <div className={fill ? `absolute inset-0 bg-[#EDE4D8] ${className ?? ''}` : `bg-[#EDE4D8] ${className ?? ''}`} />;
   }
 
-  if (src.startsWith('data:') || src.startsWith('blob:')) {
+  if (src.startsWith('data:') || src.startsWith('blob:') || src.startsWith('http://') || src.startsWith('https://')) {
     return (
-      // Uploaded catalog photos are stored as data URLs.
+      // Uploaded catalog photos may be data URLs or hosted Supabase files.
       // eslint-disable-next-line @next/next/no-img-element
       <img src={src} alt={alt} className={fill ? `absolute inset-0 h-full w-full object-cover ${className ?? ''}` : className} />
     );

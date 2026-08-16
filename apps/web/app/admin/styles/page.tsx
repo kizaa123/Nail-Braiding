@@ -40,8 +40,8 @@ export default function AdminStylesPage() {
     });
   }, [styles, filter, query]);
 
-  const save = (draft: StyleDraft) => {
-    upsertStudioStyle(draft);
+  const save = async (draft: StyleDraft) => {
+    await upsertStudioStyle(draft);
     setEditing(undefined);
   };
 
@@ -162,7 +162,7 @@ export default function AdminStylesPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => patchStudioStyle(style.id, { featured: !style.featured })}
+                  onClick={() => void patchStudioStyle(style.id, { featured: !style.featured })}
                   className="rounded-full border border-[#EADBCE] px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest"
                 >
                   {style.featured ? 'Unfeature' : 'Feature'}
@@ -170,7 +170,7 @@ export default function AdminStylesPage() {
                 {!style.archived ? (
                   <button
                     type="button"
-                    onClick={() => patchStudioStyle(style.id, { published: !style.published })}
+                    onClick={() => void patchStudioStyle(style.id, { published: !style.published })}
                     className="rounded-full border border-[#EADBCE] px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest"
                   >
                     {style.published ? 'Unpublish' : 'Publish'}
@@ -179,7 +179,7 @@ export default function AdminStylesPage() {
                 {style.archived ? (
                   <button
                     type="button"
-                    onClick={() => restoreStudioStyle(style.id)}
+                    onClick={() => void restoreStudioStyle(style.id)}
                     className="rounded-full border border-[#EADBCE] px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest"
                   >
                     Restore
@@ -187,7 +187,7 @@ export default function AdminStylesPage() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => archiveStudioStyle(style.id)}
+                    onClick={() => void archiveStudioStyle(style.id)}
                     className="rounded-full border border-[#EADBCE] px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest"
                   >
                     Archive
@@ -196,7 +196,7 @@ export default function AdminStylesPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm(`Delete ${style.name} permanently?`)) deleteStudioStyle(style.id);
+                    if (window.confirm(`Delete ${style.name} permanently?`)) void deleteStudioStyle(style.id);
                   }}
                   className="rounded-full border border-[#D98282]/40 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-[#D98282]"
                 >
