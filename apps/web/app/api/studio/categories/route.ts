@@ -19,7 +19,7 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   if (!studioCloudConfigured()) return cloudUnavailable();
-  if (!(await requireStudioAdmin())) return unauthorized();
+  if (!(await requireStudioAdmin(request))) return unauthorized();
   const body = (await request.json().catch(() => null)) as {
     categories?: StudioCategoryMap;
     rename?: { kind: 'HAIR' | 'NAILS'; from: string; to: string };

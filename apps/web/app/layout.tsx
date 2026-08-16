@@ -3,10 +3,18 @@ import { QueryProvider } from '@/components/providers/query-provider';
 import { AppChrome } from '@/components/layout/app-chrome';
 import './globals.css';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+function siteUrl() {
+  const env = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '');
+  if (env && !/localhost|127\.0\.0\.1/i.test(env)) return env;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return env || 'http://localhost:3000';
+}
+
+const siteUrlResolved = siteUrl();
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(siteUrlResolved),
   title: {
     default: 'KAS Beauty Plus — Hair Braiding & Nail Booking',
     template: '%s · KAS Beauty Plus',

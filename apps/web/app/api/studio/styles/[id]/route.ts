@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function PATCH(request: Request, ctx: { params: Promise<{ id: string }> }) {
   if (!studioCloudConfigured()) return cloudUnavailable();
-  if (!(await requireStudioAdmin())) return unauthorized();
+  if (!(await requireStudioAdmin(request))) return unauthorized();
   const { id } = await ctx.params;
   const patch = (await request.json().catch(() => null)) as Partial<StudioStyle> | null;
   if (!patch) return NextResponse.json({ error: 'Invalid update.' }, { status: 400 });
@@ -21,9 +21,9 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   }
 }
 
-export async function DELETE(_request: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, ctx: { params: Promise<{ id: string }> }) {
   if (!studioCloudConfigured()) return cloudUnavailable();
-  if (!(await requireStudioAdmin())) return unauthorized();
+  if (!(await requireStudioAdmin(request))) return unauthorized();
   const { id } = await ctx.params;
   try {
     await dbDeleteStyle(id);

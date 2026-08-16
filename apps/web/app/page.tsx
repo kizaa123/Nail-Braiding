@@ -31,75 +31,71 @@ export default async function HomePage() {
           </Reveal>
 
           <Stagger className="grid gap-5 lg:grid-cols-2 lg:gap-8">
-            <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-[#171211] text-white shadow-2xl transition-all duration-300 hover:-translate-y-1.5">
-              <div className="flex h-full min-h-0 flex-col md:grid md:min-h-[360px] md:grid-cols-2">
-                <div className="flex flex-col justify-between space-y-4 p-5 md:space-y-6 md:p-10">
+            <Link
+              href="/styles?kind=HAIR"
+              className="group relative isolate block overflow-hidden rounded-3xl border border-white/10 bg-[#171211] text-white shadow-2xl transition-all duration-300 hover:-translate-y-1.5"
+            >
+              <div className="relative min-h-[320px] md:grid md:min-h-[360px] md:grid-cols-2">
+                {/* CHANGE BUILT-IN IMAGE: home Hair card — edit editorialImages.braids[0] in lib/content.ts */}
+                <div className="absolute inset-0 md:relative md:order-last">
+                  <Image
+                    src={editorialImages.braids[0]!}
+                    alt="Hair Braiding & Protective Styles"
+                    fill
+                    className="object-cover object-[center_42%] transition-transform duration-700 group-hover:scale-105 md:object-center"
+                    sizes="(max-width: 768px) 100vw, 40vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#171211] via-[#171211]/45 to-black/20 md:bg-gradient-to-r md:from-[#171211]/55 md:via-transparent md:to-transparent" />
+                </div>
+                <div className="relative z-10 flex min-h-[320px] flex-col justify-end space-y-3 p-5 md:min-h-0 md:justify-between md:space-y-6 md:p-10">
                   <div>
                     <h3 className="font-display text-[1.65rem] font-normal leading-tight text-white md:text-4xl">
                       Hair Braiding & Protective Styles
                     </h3>
                     <div className="my-3 h-px w-10 bg-[#D98282]/40 md:my-4" />
-                    <p className="text-xs font-light leading-relaxed text-[#A99B95] md:text-sm">
+                    <p className="text-xs font-light leading-relaxed text-white/80 md:text-sm md:text-[#A99B95]">
                       Knotless, cornrow, box braid, and twist — styled in the studio.
                     </p>
                   </div>
-                  <div>
-                    <Link
-                      href="/styles?kind=HAIR"
-                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#D98282] px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#D98282] transition-all hover:bg-[#D98282] hover:text-white active:scale-95 md:px-6 md:py-3"
-                    >
-                      <span>BROWSE BRAIDS & BOOK</span>
-                    </Link>
-                  </div>
-                </div>
-                {/* CHANGE BUILT-IN IMAGE: home Hair card — edit editorialImages.braids[0] in lib/content.ts */}
-                <div className="relative order-first h-56 w-full overflow-hidden sm:h-64 md:order-none md:h-auto md:min-h-full">
-                  <Image
-                    src={editorialImages.braids[0]!}
-                    alt="Hair Braiding & Protective Styles"
-                    fill
-                    className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                    sizes="(max-width: 768px) 100vw, 40vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#171211]/70 via-transparent to-transparent md:bg-gradient-to-r md:from-[#171211]/50 md:via-transparent" />
+                  <span className="inline-flex min-h-11 w-fit items-center rounded-full border border-[#D98282] bg-[#171211]/40 px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#D98282] transition-all group-hover:bg-[#D98282] group-hover:text-white md:px-6 md:py-3">
+                    BROWSE BRAIDS & BOOK
+                  </span>
                 </div>
               </div>
-            </div>
+            </Link>
 
-            <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-[#171211] text-white shadow-2xl transition-all duration-300 hover:-translate-y-1.5">
-              <div className="flex h-full min-h-0 flex-col md:grid md:min-h-[360px] md:grid-cols-2">
-                <div className="flex flex-col justify-between space-y-4 p-5 md:space-y-6 md:p-10">
+            <Link
+              href="/styles?kind=NAILS"
+              className="group relative isolate block overflow-hidden rounded-3xl border border-white/10 bg-[#171211] text-white shadow-2xl transition-all duration-300 hover:-translate-y-1.5"
+            >
+              <div className="relative min-h-[320px] md:grid md:min-h-[360px] md:grid-cols-2">
+                {/* CHANGE BUILT-IN IMAGE: home Nails card — edit editorialImages.nails[0] in lib/content.ts */}
+                <div className="absolute inset-0 md:relative md:order-last">
+                  <Image
+                    src={editorialImages.nails[0]!}
+                    alt="Nail Couture & Artistry"
+                    fill
+                    className="object-cover object-[center_58%] transition-transform duration-700 group-hover:scale-105 md:object-center"
+                    sizes="(max-width: 768px) 100vw, 40vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#171211] via-[#171211]/40 to-black/15 md:bg-gradient-to-r md:from-[#171211]/55 md:via-transparent md:to-transparent" />
+                </div>
+                <div className="relative z-10 flex min-h-[320px] flex-col justify-end space-y-3 p-5 md:min-h-0 md:justify-between md:space-y-6 md:p-10">
                   <div>
                     <h3 className="font-display text-[1.65rem] font-normal leading-tight text-[#C9A46A] md:text-4xl">
                       Nail Couture & Artistry
                     </h3>
                     <div className="my-3 h-px w-10 bg-[#C9A46A]/40 md:my-4" />
-                    <p className="text-xs font-light leading-relaxed text-[#A99B95] md:text-sm">
+                    <p className="text-xs font-light leading-relaxed text-white/80 md:text-sm md:text-[#A99B95]">
                       Studio nail work to finish the look — classic, chrome, and custom art.
                     </p>
                   </div>
-                  <div>
-                    <Link
-                      href="/styles?kind=NAILS"
-                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#C9A46A] px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#C9A46A] transition-all hover:bg-[#C9A46A] hover:text-white active:scale-95 md:px-6 md:py-3"
-                    >
-                      <span>BROWSE NAILS & BOOK</span>
-                    </Link>
-                  </div>
-                </div>
-                {/* CHANGE BUILT-IN IMAGE: home Nails card — edit editorialImages.nails[0] in lib/content.ts */}
-                <div className="relative order-first h-56 w-full overflow-hidden sm:h-64 md:order-none md:h-auto md:min-h-full">
-                  <Image
-                    src={editorialImages.nails[0]!}
-                    alt="Nail Couture & Artistry"
-                    fill
-                    className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                    sizes="(max-width: 768px) 100vw, 40vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#171211]/70 via-transparent to-transparent md:bg-gradient-to-r md:from-[#171211]/50 md:via-transparent" />
+                  <span className="inline-flex min-h-11 w-fit items-center rounded-full border border-[#C9A46A] bg-[#171211]/40 px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#C9A46A] transition-all group-hover:bg-[#C9A46A] group-hover:text-white md:px-6 md:py-3">
+                    BROWSE NAILS & BOOK
+                  </span>
                 </div>
               </div>
-            </div>
+            </Link>
           </Stagger>
 
           <Stagger className="mt-16 grid grid-cols-1 gap-8 border-t border-[#3A2924]/15 pt-10 sm:grid-cols-3" delay={0.05}>

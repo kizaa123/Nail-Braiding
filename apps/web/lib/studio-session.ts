@@ -1,4 +1,5 @@
 export const STUDIO_SESSION_KEY = 'luxe-studio-session';
+export const STUDIO_WRITE_TOKEN_KEY = 'kas-studio-write-token';
 export const STUDIO_SESSION_EVENT = 'luxe-session-changed';
 
 export type StudioRole = 'ADMIN' | 'PROFESSIONAL';
@@ -43,9 +44,20 @@ export function saveStudioSession(session: StudioSession) {
   notify();
 }
 
+export function readStudioWriteToken() {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(STUDIO_WRITE_TOKEN_KEY) ?? '';
+}
+
+export function saveStudioWriteToken(token: string) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(STUDIO_WRITE_TOKEN_KEY, token);
+}
+
 export function clearStudioSession() {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(STUDIO_SESSION_KEY);
+  window.localStorage.removeItem(STUDIO_WRITE_TOKEN_KEY);
   notify();
 }
 

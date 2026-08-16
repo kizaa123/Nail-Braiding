@@ -5,8 +5,10 @@ import {
   STUDIO_STYLES_EVENT,
   fetchStudioStyles,
   listStudioStyles,
+  syncLocalStylesToCloud,
   type StudioStyle,
 } from '@/lib/studio-styles';
+import { readStudioWriteToken } from '@/lib/studio-session';
 
 export function useStudioCatalog() {
   const [styles, setStyles] = useState<StudioStyle[]>([]);
@@ -17,9 +19,13 @@ export function useStudioCatalog() {
     const refresh = () => setStyles(listStudioStyles());
     refresh();
     setReady(true);
-    void fetchStudioStyles().then((rows) => {
+    void (async () => {
+      if (readStudioWriteToken()) {
+        await syncLocalStylesToCloud();
+      }
+      const rows = await fetchStudioStyles();
       if (active) setStyles(rows);
-    });
+    })();
     window.addEventListener(STUDIO_STYLES_EVENT, refresh);
     window.addEventListener('storage', refresh);
     return () => {

@@ -10,6 +10,7 @@ import {
   STUDIO_OWNER_HINT,
   pathForRole,
   saveStudioSession,
+  saveStudioWriteToken,
   signInStudioOwner,
 } from '@/lib/studio-session';
 import { StudioLogo } from '@/components/brand/studio-logo';
@@ -52,12 +53,16 @@ export default function LoginPage() {
               try {
                 const local = signInStudioOwner(email, password);
                 if (local) {
-                  await fetch('/api/studio/session', {
+                  const sessionRes = await fetch('/api/studio/session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
                     body: JSON.stringify({ email, password }),
                   }).catch(() => null);
+                  const sessionBody = (await sessionRes?.json().catch(() => null)) as { token?: string } | null;
+                  if (sessionBody?.token) {
+                    saveStudioWriteToken(sessionBody.token);
+                  }
                   router.push(pathForRole(local.role));
                   router.refresh();
                   return;

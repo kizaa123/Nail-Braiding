@@ -7,6 +7,9 @@ const BACKEND = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL 
 
 async function proxy(req: Request, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
+  if (path[0] === 'studio') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
   const incoming = new URL(req.url);
   const target = `${BACKEND}/api/${path.join('/')}${incoming.search}`;
 

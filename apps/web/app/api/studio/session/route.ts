@@ -16,12 +16,14 @@ export async function POST(request: Request) {
   if (!owner) {
     return NextResponse.json({ error: 'Wrong email or password.' }, { status: 401 });
   }
+  const token = signStudioAdminToken(owner.email);
   const response = NextResponse.json({
     ok: true,
     cloud: studioCloudConfigured(),
+    token,
     user: { email: owner.email, role: owner.role },
   });
-  response.cookies.set(STUDIO_ADMIN_COOKIE, signStudioAdminToken(owner.email), studioCookieOptions());
+  response.cookies.set(STUDIO_ADMIN_COOKIE, token, studioCookieOptions());
   return response;
 }
 

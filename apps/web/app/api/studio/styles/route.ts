@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   if (!studioCloudConfigured()) return cloudUnavailable();
   const url = new URL(request.url);
   const asked = url.searchParams.get('scope') === 'all';
-  const admin = await requireStudioAdmin();
+  const admin = await requireStudioAdmin(request);
   const scope = asked && admin ? 'all' : 'public';
   try {
     const styles = await dbListStyles(scope);
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   if (!studioCloudConfigured()) return cloudUnavailable();
-  if (!(await requireStudioAdmin())) return unauthorized();
+  if (!(await requireStudioAdmin(request))) return unauthorized();
   const draft = (await request.json().catch(() => null)) as StyleDraft | null;
   if (!draft?.name?.trim() || !draft.categoryName?.trim()) {
     return NextResponse.json({ error: 'Name and category are required.' }, { status: 400 });

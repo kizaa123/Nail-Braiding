@@ -34,17 +34,19 @@ export function studioCookieOptions() {
   return {
     httpOnly: true,
     sameSite: 'lax' as const,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.VERCEL === '1',
     path: '/',
     maxAge: 7 * 24 * 60 * 60,
   };
 }
 
-export async function requireStudioAdmin() {
+export async function requireStudioAdmin(request?: Request) {
+  const auth = request?.headers.get('authorization');
+  const bearer = auth?.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
+  const fromHeader = readStudioAdminEmail(bearer);
+  if (fromHeader) return fromHeader;
   const store = await cookies();
-  const email = readStudioAdminEmail(store.get(STUDIO_ADMIN_COOKIE)?.value);
-  if (!email) return null;
-  return email;
+  return readStudioAdminEmail(store.get(STUDIO_ADMIN_COOKIE)?.value);
 }
 
 export function unauthorized() {

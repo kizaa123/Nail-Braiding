@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   if (!studioCloudConfigured()) return cloudUnavailable();
-  if (!(await requireStudioAdmin())) return unauthorized();
+  if (!(await requireStudioAdmin(request))) return unauthorized();
   try {
     const bookings = await dbListBookings();
     return NextResponse.json({ cloud: true, bookings: bookings ?? [] });

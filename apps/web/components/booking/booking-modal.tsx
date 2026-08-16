@@ -193,7 +193,7 @@ export function BookingModal({
               <p className="font-display text-3xl text-[#171211]">Booking confirmed</p>
               <p className="text-sm text-[#7A6E68]">
                 {done === 'WHATSAPP'
-                  ? `The look photo and details were sent to WhatsApp (${DISPLAY_PHONE}). Paste the photo in the chat if it is not already attached.`
+                  ? `Choose WhatsApp if asked, then send. The look photo goes with the booking details to ${DISPLAY_PHONE}.`
                   : 'This booking is now on the studio portal board.'}
               </p>
               {done === 'PORTAL' ? (

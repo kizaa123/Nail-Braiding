@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   if (!studioCloudConfigured()) return cloudUnavailable();
-  if (!(await requireStudioAdmin())) return unauthorized();
+  if (!(await requireStudioAdmin(request))) return unauthorized();
   const form = await request.formData().catch(() => null);
   const file = form?.get('file');
   if (!(file instanceof File) || file.size < 20) {

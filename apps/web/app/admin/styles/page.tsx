@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatCedis } from '@/lib/api';
 import { useStudioCatalog } from '@/hooks/use-studio-catalog';
 import {
@@ -8,6 +8,7 @@ import {
   deleteStudioStyle,
   patchStudioStyle,
   restoreStudioStyle,
+  studioCloudEnabled,
   upsertStudioStyle,
   type StyleDraft,
   type StudioStyle,
@@ -24,6 +25,11 @@ export default function AdminStylesPage() {
   const [filter, setFilter] = useState<Filter>('active');
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<StudioStyle | null | undefined>(undefined);
+  const [cloud, setCloud] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void studioCloudEnabled().then(setCloud);
+  }, []);
 
   const rows = useMemo(() => {
     return styles.filter((style) => {
@@ -55,6 +61,14 @@ export default function AdminStylesPage() {
           <p className="mt-2 max-w-xl text-sm text-[#A99B95]">
             Add looks, upload photos, set price and category, then tap a card to edit.
           </p>
+          {cloud === false ? (
+            <p className="mt-3 rounded-2xl border border-[#D98282]/30 bg-[#D98282]/10 px-4 py-3 text-sm text-[#171211]">
+              Shared catalog is not connected yet. Looks stay on this device only. Add the Supabase keys, then sign in again.
+            </p>
+          ) : null}
+          {cloud === true ? (
+            <p className="mt-3 text-sm text-[#2D6A4F]">Looks you save here show for customers on every phone and laptop.</p>
+          ) : null}
         </div>
         <button
           type="button"

@@ -9,9 +9,14 @@ import { AdminShell } from '@/components/admin/admin-shell';
 export function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isPortal = pathname.startsWith('/admin');
+  const isLookShare = pathname.startsWith('/l/');
 
   if (isPortal) {
     return <AdminShell>{children}</AdminShell>;
+  }
+
+  if (isLookShare) {
+    return <>{children}</>;
   }
 
   return (
