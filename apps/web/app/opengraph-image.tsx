@@ -30,7 +30,7 @@ export default async function OpenGraphImage() {
           backgroundColor: '#171211',
         }}
       >
-        <img src={src} width={360} height={360} style={{ borderRadius: 180 }} />
+        <img src={src} alt="" width={360} height={360} style={{ borderRadius: 180 }} />
         <div
           style={{
             marginTop: 28,
@@ -43,7 +43,7 @@ export default async function OpenGraphImage() {
           KAS Beauty Plus
         </div>
         <div style={{ marginTop: 12, color: '#C9A46A', fontSize: 26 }}>
-          adding values to God's creation
+          {'adding values to God\u2019s creation'}
         </div>
       </div>
     ),

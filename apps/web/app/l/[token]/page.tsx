@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { decodeLookShareToken, requestOrigin } from '@/lib/look-share';
 import { STUDIO_LOCATION, STUDIO_NAME } from '@/lib/studio-bookings';
@@ -50,12 +51,12 @@ export default async function LookSharePage({ params }: { params: Promise<{ toke
       <p className="mt-2 text-sm text-[#A99B95]">{STUDIO_LOCATION}</p>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={`/l/${token}/image`} alt={look.n} className="mt-8 w-full rounded-[28px] object-cover" />
-      <a
+      <Link
         href="/styles"
         className="mt-8 inline-flex min-h-11 items-center justify-center rounded-2xl bg-[#C9A46A] px-6 text-[10px] font-bold uppercase tracking-[0.16em] text-[#171211]"
       >
         Book this look
-      </a>
+      </Link>
     </main>
   );
 }
