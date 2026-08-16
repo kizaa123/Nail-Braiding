@@ -259,8 +259,10 @@ export async function dbListCategories(): Promise<StudioCategoryMap | null> {
   if (error) throw error;
   const map: StudioCategoryMap = { HAIR: [], NAILS: [] };
   for (const row of data ?? []) {
-    if (row.kind === 'HAIR' || row.kind === 'NAILS') {
-      map[row.kind] = Array.isArray(row.names) ? row.names : [];
+    if (row.kind === 'HAIR') {
+      map.HAIR = Array.isArray(row.names) ? row.names : [];
+    } else if (row.kind === 'NAILS') {
+      map.NAILS = Array.isArray(row.names) ? row.names : [];
     }
   }
   return map;

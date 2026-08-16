@@ -6,7 +6,7 @@ import type { StudioBooking } from '@/lib/studio-bookings';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!studioCloudConfigured()) return cloudUnavailable();
   if (!(await requireStudioAdmin(request))) return unauthorized();
   try {
