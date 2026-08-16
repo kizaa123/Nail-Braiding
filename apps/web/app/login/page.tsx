@@ -51,18 +51,30 @@ export default function LoginPage() {
               const password = String(form.get('password') ?? '');
 
               try {
+                const sessionRes = await fetch('/api/studio/session', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({ email, password }),
+                }).catch(() => null);
+                const sessionBody = (await sessionRes?.json().catch(() => null)) as {
+                  token?: string;
+                  user?: LoginUser;
+                } | null;
+                if (sessionRes?.ok && sessionBody?.user) {
+                  if (sessionBody.token) saveStudioWriteToken(sessionBody.token);
+                  saveStudioSession({
+                    email: sessionBody.user.email,
+                    role: sessionBody.user.role === 'PROFESSIONAL' ? 'PROFESSIONAL' : 'ADMIN',
+                    signedInAt: new Date().toISOString(),
+                  });
+                  router.push(pathForRole(sessionBody.user.role));
+                  router.refresh();
+                  return;
+                }
+
                 const local = signInStudioOwner(email, password);
                 if (local) {
-                  const sessionRes = await fetch('/api/studio/session', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ email, password }),
-                  }).catch(() => null);
-                  const sessionBody = (await sessionRes?.json().catch(() => null)) as { token?: string } | null;
-                  if (sessionBody?.token) {
-                    saveStudioWriteToken(sessionBody.token);
-                  }
                   router.push(pathForRole(local.role));
                   router.refresh();
                   return;

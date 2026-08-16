@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cloudUnavailable, requireStudioAdmin, unauthorized } from '@/lib/studio-auth';
 import { studioCloudConfigured } from '@/lib/supabase-admin';
 import { dbListStyles, dbUpsertStyle } from '@/lib/studio-db';
+import { sanitizeDbError } from '@/lib/studio-pg';
 import type { StyleDraft } from '@/lib/studio-styles';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
     const styles = await dbListStyles(scope);
     return NextResponse.json({ cloud: true, styles: styles ?? [] });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Could not load looks.';
+    const message = sanitizeDbError(error) || 'Could not load looks.';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
     const style = await dbUpsertStyle(draft);
     return NextResponse.json({ style });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Could not save look.';
+    const message = sanitizeDbError(error) || 'Could not save look.';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -45,7 +45,7 @@ export function allowLocalCatalog() {
 }
 
 export const CLOUD_REQUIRED_MESSAGE =
-  'Shared catalog is not connected. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on Vercel, redeploy, then sign in and save the look again.';
+  'Shared catalog is not connected. Check DATABASE_URL on Vercel, redeploy, then sign in on the live site and save the look again.';
 
 function notify() {
   if (typeof window === 'undefined') return;

@@ -54,7 +54,10 @@ export function unauthorized() {
 }
 
 export function cloudUnavailable() {
-  return NextResponse.json({ cloud: false, error: 'Studio cloud is not configured.' }, { status: 503 });
+  return NextResponse.json(
+    { cloud: false, error: 'Studio cloud is not configured. Set DATABASE_URL on Vercel, then redeploy.' },
+    { status: 503 },
+  );
 }
 
 export function loginStudioOwner(email: string, password: string) {

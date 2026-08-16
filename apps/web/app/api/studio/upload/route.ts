@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cloudUnavailable, requireStudioAdmin, unauthorized } from '@/lib/studio-auth';
-import { studioCloudConfigured } from '@/lib/supabase-admin';
+import { studioCloudConfigured, studioImageConfigured } from '@/lib/supabase-admin';
 import { dbUploadLook } from '@/lib/studio-db';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +18,16 @@ export async function POST(request: Request) {
   }
   try {
     const bytes = Buffer.from(await file.arrayBuffer());
+    if (!studioImageConfigured()) {
+      return NextResponse.json(
+        { error: 'Photo storage is not configured. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET on Vercel.' },
+        { status: 503 },
+      );
+    }
     const url = await dbUploadLook(bytes, file.type || 'image/jpeg');
+    if (!url) {
+      return NextResponse.json({ error: 'Could not upload photo.' }, { status: 500 });
+    }
     return NextResponse.json({ url });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not upload photo.';

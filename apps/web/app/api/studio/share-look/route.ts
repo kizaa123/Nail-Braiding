@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { studioCloudConfigured } from '@/lib/supabase-admin';
+import { studioImageConfigured } from '@/lib/supabase-admin';
 import { dbUploadLook } from '@/lib/studio-db';
 import { saveLookImageFromBytes } from '@/lib/look-image-store';
 
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const type = file.type || 'image/jpeg';
   const bytes = Buffer.from(await file.arrayBuffer());
 
-  if (studioCloudConfigured()) {
+  if (studioImageConfigured()) {
     try {
       const url = await dbUploadLook(bytes, type);
       if (url) return NextResponse.json({ url });

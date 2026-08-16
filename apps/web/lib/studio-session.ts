@@ -63,7 +63,14 @@ export function clearStudioSession() {
 
 export function verifyStudioOwner(email: string, password: string) {
   const normalized = email.trim().toLowerCase();
-  return STUDIO_OWNERS.find((owner) => owner.email === normalized && owner.password === password) ?? null;
+  const listed = STUDIO_OWNERS.find((owner) => owner.email === normalized && owner.password === password);
+  if (listed) return listed;
+  const seedEmail = (process.env.SEED_ADMIN_EMAIL || '').trim().toLowerCase();
+  const seedPassword = process.env.SEED_ADMIN_PASSWORD || '';
+  if (seedEmail && seedPassword && normalized === seedEmail && password === seedPassword) {
+    return { email: seedEmail, password: seedPassword, role: 'ADMIN' as const };
+  }
+  return null;
 }
 
 export function signInStudioOwner(email: string, password: string): StudioSession | null {
