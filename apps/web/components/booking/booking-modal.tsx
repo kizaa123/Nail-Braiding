@@ -118,6 +118,22 @@ export function BookingModal({
 
   const submit = (selectedDestination: 'PORTAL' | 'WHATSAPP') => {
     if (!canSubmit) return;
+    let href = '#';
+    if (selectedDestination === 'WHATSAPP') {
+      href = openWhatsAppBooking({
+        studioName: STUDIO_NAME,
+        clientName: name,
+        location,
+        styleName: look.name,
+        categoryName: look.categoryName,
+        imageUrl: look.imageUrl,
+        durationMinutes: look.durationMinutes,
+        priceMinor: look.startingPriceMinor,
+        scheduledDate: date,
+        scheduledTime: time,
+        notes,
+      });
+    }
     const booking = createStudioBooking({
       look,
       clientName: name,
@@ -130,21 +146,7 @@ export function BookingModal({
     });
     setReference(booking.reference);
     setDone(selectedDestination);
-    if (selectedDestination === 'WHATSAPP') {
-      void openWhatsAppBooking({
-        studioName: STUDIO_NAME,
-        clientName: name,
-        location,
-        styleName: look.name,
-        categoryName: look.categoryName,
-        imageUrl: look.imageUrl,
-        durationMinutes: look.durationMinutes,
-        priceMinor: look.startingPriceMinor,
-        scheduledDate: date,
-        scheduledTime: time,
-        notes,
-      }).then(setWhatsappHref);
-    }
+    setWhatsappHref(href);
   };
 
   return createPortal(
@@ -193,7 +195,7 @@ export function BookingModal({
               <p className="font-display text-3xl text-[#171211]">Booking confirmed</p>
               <p className="text-sm text-[#7A6E68]">
                 {done === 'WHATSAPP'
-                  ? `Choose WhatsApp if asked, then send. The look photo goes with the booking details to ${DISPLAY_PHONE}.`
+                  ? `WhatsApp should open with this booking ready to send to ${DISPLAY_PHONE}.`
                   : 'This booking is now on the studio portal board.'}
               </p>
               {done === 'PORTAL' ? (

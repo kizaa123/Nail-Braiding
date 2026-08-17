@@ -135,34 +135,6 @@ export function formatBookingWhen(booking?: string | {
   };
 }
 
-async function lookImageToFile(imageUrl: string | undefined, styleName: string) {
-  const raw = imageUrl?.trim();
-  if (!raw || typeof window === 'undefined') return null;
-  const safe = styleName.replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'look';
-  try {
-    if (raw.startsWith('data:image/')) {
-      const match = raw.match(/^data:(image\/[\w.+-]+);base64,([A-Za-z0-9+/=\s]+)$/);
-      if (!match) return null;
-      const binary = atob(match[2].replace(/\s/g, ''));
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-      const type = match[1];
-      const ext = type.split('/')[1]?.split('+')[0] || 'jpg';
-      return new File([bytes], `${safe}.${ext}`, { type });
-    }
-    const src = raw.startsWith('/') ? new URL(raw, window.location.origin).href : raw;
-    const response = await fetch(src);
-    if (!response.ok) return null;
-    const blob = await response.blob();
-    if (!blob.type.startsWith('image/') && blob.size < 20) return null;
-    const type = blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
-    const ext = type.split('/')[1]?.split('+')[0] || 'jpg';
-    return new File([blob], `${safe}.${ext}`, { type });
-  } catch {
-    return null;
-  }
-}
-
 function isLocalHostUrl(url: string) {
   return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
 }
@@ -186,93 +158,18 @@ function isDurablePublicImageUrl(url: string) {
 function messagePhotoLine(imageUrl?: string) {
   const raw = absoluteUrl(imageUrl);
   if (!raw || isLocalHostUrl(raw)) return '';
-  if (/^https:\/\//i.test(raw)) return raw;
+  if (/^https?:\/\//i.test(raw)) return raw;
   return '';
 }
 
-async function fileToJpegFile(file: File) {
-  try {
-    const bitmap = await createImageBitmap(file);
-    const max = 1600;
-    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      bitmap.close();
-      return file;
-    }
-    ctx.fillStyle = '#171211';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (value) => (value ? resolve(value) : reject(new Error('Could not convert image'))),
-        'image/jpeg',
-        0.86,
-      );
-    });
-    return new File([blob], 'look.jpg', { type: 'image/jpeg' });
-  } catch {
-    return file;
-  }
-}
-
-async function ensureWhatsAppPhotoUrl(imageUrl?: string, styleName?: string, preparedFile?: File | null) {
-  const existing = absoluteUrl(imageUrl);
-  if (existing && isDurablePublicImageUrl(existing)) return existing;
-  const file = preparedFile || (await lookImageToFile(imageUrl, styleName || 'look'));
-  if (!file) return existing && !isLocalHostUrl(existing) ? existing : '';
-  try {
-    const jpeg = await fileToJpegFile(file);
-    const form = new FormData();
-    form.append('file', jpeg, 'look.jpg');
-    const response = await fetch('/api/studio/share-look', { method: 'POST', body: form });
-    const payload = (await response.json().catch(() => null)) as { url?: string } | null;
-    if (!response.ok || !payload?.url) return existing && !isLocalHostUrl(existing) ? existing : '';
-    const uploaded = payload.url.startsWith('http') ? payload.url : new URL(payload.url, window.location.origin).href;
-    return isDurablePublicImageUrl(uploaded) ? uploaded : existing && !isLocalHostUrl(existing) ? existing : uploaded;
-  } catch {
-    return existing && !isLocalHostUrl(existing) ? existing : '';
-  }
-}
-
-function whatsAppPreviewUrl(imageUrl: string, styleName: string) {
-  if (!imageUrl || typeof window === 'undefined') return '';
+function syncLookPreviewUrl(imageUrl?: string, styleName?: string) {
+  const raw = imageUrl?.trim() ?? '';
+  if (!raw || raw.startsWith('data:') || raw.startsWith('blob:') || typeof window === 'undefined') return '';
   const origin = window.location.origin;
-  if (isLocalHostUrl(origin)) return isDurablePublicImageUrl(imageUrl) ? imageUrl : '';
-  return new URL(lookSharePath(imageUrl, styleName), origin).href;
-}
-
-async function copyImageFileToClipboard(file: File) {
-  if (!navigator.clipboard || typeof ClipboardItem === 'undefined') return;
-  try {
-    await navigator.clipboard.write([new ClipboardItem({ [file.type]: file })]);
-  } catch {
-    try {
-      const png = await fileToPngFile(file);
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
-    } catch {
-      /* paste fallback unavailable */
-    }
-  }
-}
-
-async function fileToPngFile(file: File) {
-  const bitmap = await createImageBitmap(file);
-  const canvas = document.createElement('canvas');
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Could not convert image');
-  ctx.drawImage(bitmap, 0, 0);
-  bitmap.close();
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((value) => (value ? resolve(value) : reject(new Error('Could not convert image'))), 'image/png');
-  });
-  return new File([blob], 'look.png', { type: 'image/png' });
+  const abs = raw.startsWith('/') ? new URL(raw, origin).href : raw;
+  if (!/^https?:\/\//i.test(abs) || isLocalHostUrl(abs)) return '';
+  if (isLocalHostUrl(origin)) return isDurablePublicImageUrl(abs) ? abs : '';
+  return new URL(lookSharePath(abs, styleName || 'Look'), origin).href;
 }
 
 export function buildWhatsAppBookingMessage(input: {
@@ -327,98 +224,37 @@ export function buildWhatsAppBookingMessage(input: {
 }
 
 export function buildWhatsAppUrl(text: string) {
-  return `https://api.whatsapp.com/send?phone=${WHATSAPP_PHONE}&text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(text)}`;
 }
 
-function buildWhatsAppAppUrl(text: string) {
-  return `whatsapp://send?phone=${WHATSAPP_PHONE}&text=${encodeURIComponent(text)}`;
-}
-
-function clickHiddenLink(href: string) {
+export function openWhatsAppBooking(input: Parameters<typeof buildWhatsAppBookingMessage>[0]) {
+  if (typeof window === 'undefined') return '#';
+  const text = buildWhatsAppBookingMessage({
+    ...input,
+    reference: undefined,
+    imageUrl: syncLookPreviewUrl(input.imageUrl, input.styleName),
+  });
+  const href = buildWhatsAppUrl(text);
+  const popup = window.open(href, '_blank');
+  if (popup) {
+    try {
+      popup.opener = null;
+    } catch {
+      /* ignore */
+    }
+    return href;
+  }
   const anchor = document.createElement('a');
   anchor.href = href;
+  anchor.target = '_blank';
   anchor.rel = 'noopener noreferrer';
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-}
-
-function launchWhatsAppApp(text: string, tab?: Window | null) {
-  const appUrl = buildWhatsAppAppUrl(text);
-  const httpsUrl = buildWhatsAppUrl(text);
-
-  clickHiddenLink(appUrl);
-
-  if (tab && !tab.closed) {
-    tab.opener = null;
-    try {
-      tab.location.replace(appUrl);
-    } catch {
-      tab.location.replace(httpsUrl);
-      return httpsUrl;
-    }
-    window.setTimeout(() => {
-      try {
-        if (document.hidden || document.visibilityState === 'hidden') {
-          tab.close();
-          return;
-        }
-        if (!tab.closed) tab.location.replace(httpsUrl);
-      } catch {
-        try {
-          tab.close();
-        } catch {
-          /* the native app already took over */
-        }
-      }
-    }, 700);
-    return httpsUrl;
-  }
-
   window.setTimeout(() => {
-    if (!document.hidden) clickHiddenLink(httpsUrl);
-  }, 700);
-  return httpsUrl;
-}
-
-async function shareLookToWhatsApp(file: File, text: string) {
-  const jpeg = await fileToJpegFile(file);
-  const payload = { files: [jpeg], text, title: `${STUDIO_NAME} booking` };
-  if (!navigator.canShare?.({ files: [jpeg] })) return false;
-  try {
-    await navigator.share(payload);
-    return true;
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') return true;
-    return false;
-  }
-}
-
-export async function openWhatsAppBooking(
-  input: Parameters<typeof buildWhatsAppBookingMessage>[0],
-) {
-  if (typeof window === 'undefined') return '#';
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const tab = isMobile ? null : window.open('about:blank', '_blank');
-  const file = await lookImageToFile(input.imageUrl, input.styleName);
-  const jpeg = file ? await fileToJpegFile(file) : null;
-  const hostedImage = await ensureWhatsAppPhotoUrl(input.imageUrl, input.styleName, jpeg);
-  const previewUrl = hostedImage ? whatsAppPreviewUrl(hostedImage, input.styleName || 'Look') : '';
-  const text = buildWhatsAppBookingMessage({ ...input, imageUrl: previewUrl || hostedImage });
-  if (jpeg) {
-    const shareText = `Please send this to ${STUDIO_NAME} (${DISPLAY_PHONE}).\n\n${text}`;
-    const shared = await shareLookToWhatsApp(jpeg, shareText);
-    if (shared) {
-      try {
-        tab?.close();
-      } catch {
-        /* share sheet already took over */
-      }
-      return buildWhatsAppUrl(text);
-    }
-    await copyImageFileToClipboard(jpeg);
-  }
-  return launchWhatsAppApp(text, tab);
+    if (document.visibilityState === 'visible') window.location.assign(href);
+  }, 400);
+  return href;
 }
 
 function notifyBookings() {
