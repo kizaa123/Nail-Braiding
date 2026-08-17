@@ -205,6 +205,23 @@ function openWhatsAppHref(href: string) {
   }
 }
 
+function isLocalHostUrl(url: string) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
+}
+
+function lookPhotoLink(input: { imageUrl?: string; slug?: string }) {
+  if (typeof window === 'undefined') return '';
+  const raw = input.imageUrl?.trim() ?? '';
+  if (/^https:\/\/res\.cloudinary\.com\//i.test(raw) && raw.length < 1800) {
+    return raw.replace(/\/image\/upload\/(?!f_jpg)/, '/image/upload/f_jpg,q_70,w_1080,c_limit/');
+  }
+  const origin = window.location.origin;
+  if (input.slug && !isLocalHostUrl(origin)) {
+    return `${origin}/og/${encodeURIComponent(input.slug)}/photo.jpg`;
+  }
+  return '';
+}
+
 export function buildWhatsAppBookingMessage(input: {
   studioName: string;
   reference?: string;
@@ -223,7 +240,9 @@ export function buildWhatsAppBookingMessage(input: {
   notes?: string;
 }) {
   const { day, time } = formatBookingWhen(input);
+  const photo = lookPhotoLink(input);
   const lines = [
+    ...(photo ? [photo, ''] : []),
     `Hello ${input.studioName}`,
     '',
     'I would like to book this look:',
@@ -280,35 +299,10 @@ export function openWhatsAppBooking(input: Parameters<typeof buildWhatsAppBookin
   }
 }
 
-export async function sendWhatsAppBooking(
+export function sendWhatsAppBooking(
   input: Parameters<typeof buildWhatsAppBookingMessage>[0] & { imageFile?: File | null },
 ) {
-  if (typeof window === 'undefined') return '#';
-  const { imageFile, ...messageInput } = input;
-  const text = buildWhatsAppBookingMessage({ ...messageInput, reference: undefined });
-  const href = buildWhatsAppUrl(text);
-
-  if (imageFile && typeof navigator.canShare === 'function') {
-    try {
-      const payload: ShareData = {
-        files: [imageFile],
-        text,
-        title: `Send to ${STUDIO_NAME} (${DISPLAY_PHONE})`,
-      };
-      if (navigator.canShare(payload)) {
-        await navigator.share(payload);
-        return href;
-      }
-    } catch (error) {
-      if ((error as Error).name === 'AbortError') {
-        openWhatsAppHref(href);
-        return href;
-      }
-    }
-  }
-
-  openWhatsAppHref(href);
-  return href;
+  return openWhatsAppBooking(input);
 }
 
 function notifyBookings() {

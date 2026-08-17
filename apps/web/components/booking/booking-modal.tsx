@@ -14,8 +14,7 @@ import {
   createStudioBooking,
   formatBookingDate,
   formatBookingTime,
-  prepareLookImageFile,
-  sendWhatsAppBooking,
+  openWhatsAppBooking,
   type BookableLook,
 } from '@/lib/studio-bookings';
 
@@ -87,7 +86,6 @@ export function BookingModal({
   const [whatsappHref, setWhatsappHref] = useState('#');
   const [formError, setFormError] = useState('');
   const [mounted, setMounted] = useState(false);
-  const [lookPhoto, setLookPhoto] = useState<File | null>(null);
   const minDate = useMemo(() => todayValue(), []);
   const router = useRouter();
 
@@ -107,19 +105,7 @@ export function BookingModal({
     setReference('');
     setWhatsappHref('#');
     setFormError('');
-    setLookPhoto(null);
   }, [open]);
-
-  useEffect(() => {
-    if (!open || destination !== 'WHATSAPP' || !look?.imageUrl) return;
-    let cancelled = false;
-    void prepareLookImageFile(look.imageUrl, look.name).then((file) => {
-      if (!cancelled) setLookPhoto(file);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, destination, look]);
 
   useEffect(() => {
     if (!open) return;
@@ -154,44 +140,40 @@ export function BookingModal({
       return;
     }
     setFormError('');
-    const finish = (href: string) => {
-      const booking = createStudioBooking({
-        look,
-        clientName: name,
-        clientPhone: selectedDestination === 'PORTAL' ? contact : undefined,
-        location,
-        scheduledDate: date,
-        scheduledTime: time,
-        notes,
-        destination: selectedDestination,
-      });
-      setReference(booking.reference);
-      setWhatsappHref(href);
-      setDone(selectedDestination);
-    };
-
-    if (selectedDestination !== 'WHATSAPP') {
-      finish('#');
-      return;
+    let href = '#';
+    if (selectedDestination === 'WHATSAPP') {
+      try {
+        href = openWhatsAppBooking({
+          studioName: STUDIO_NAME,
+          clientName: name,
+          location,
+          styleName: look.name,
+          categoryName: look.categoryName,
+          slug: look.slug,
+          imageUrl: look.imageUrl,
+          durationMinutes: look.durationMinutes,
+          priceMinor: look.startingPriceMinor,
+          scheduledDate: date,
+          scheduledTime: time,
+          notes,
+        });
+      } catch {
+        href = `https://wa.me/${WHATSAPP_PHONE}`;
+      }
     }
-
-    void sendWhatsAppBooking({
-      studioName: STUDIO_NAME,
+    const booking = createStudioBooking({
+      look,
       clientName: name,
+      clientPhone: selectedDestination === 'PORTAL' ? contact : undefined,
       location,
-      styleName: look.name,
-      categoryName: look.categoryName,
-      slug: look.slug,
-      imageUrl: look.imageUrl,
-      durationMinutes: look.durationMinutes,
-      priceMinor: look.startingPriceMinor,
       scheduledDate: date,
       scheduledTime: time,
       notes,
-      imageFile: lookPhoto,
-    })
-      .then(finish)
-      .catch(() => finish(`https://wa.me/${WHATSAPP_PHONE}`));
+      destination: selectedDestination,
+    });
+    setReference(booking.reference);
+    setWhatsappHref(href);
+    setDone(selectedDestination);
   };
 
   const closeAfterSuccess = () => {
@@ -245,7 +227,7 @@ export function BookingModal({
               <p className="font-display text-3xl text-[#171211]">Booking confirmed</p>
               <p className="text-sm text-[#7A6E68]">
                 {done === 'WHATSAPP'
-                  ? `WhatsApp should open with the look photo and this booking ready to send to ${DISPLAY_PHONE}.`
+                  ? `WhatsApp should open with this look and booking ready to send to ${DISPLAY_PHONE}.`
                   : 'This booking is now on the studio portal board.'}
               </p>
               {done === 'PORTAL' ? (
