@@ -108,10 +108,13 @@ export function formatBookingWhen(booking?: string | {
   }
 
   if (booking.scheduledDate) {
-    return {
-      day: formatBookingDate(booking.scheduledDate),
-      time: booking.scheduledTime ? formatBookingTime(booking.scheduledTime) : '',
-    };
+    if (/^\d{4}-\d{2}-\d{2}$/.test(booking.scheduledDate)) {
+      return {
+        day: formatBookingDate(booking.scheduledDate),
+        time: booking.scheduledTime ? formatBookingTime(booking.scheduledTime) : '',
+      };
+    }
+    return { day: booking.scheduledDate, time: booking.scheduledTime || '' };
   }
 
   if (!booking.scheduledAt) {
@@ -205,10 +208,7 @@ export function buildWhatsAppBookingMessage(input: {
   if (input.clientPhone?.trim()) {
     lines.push(`*Phone:* ${input.clientPhone.trim()}`);
   }
-  lines.push('', `*Date:* ${day}`);
-  if (time) {
-    lines.push(`*Time:* ${time}`);
-  }
+  lines.push('', `*Date & time:* ${time ? `${day} · ${time}` : day}`);
   if (input.reference?.trim()) {
     lines.push(`*Reference:* ${input.reference.trim()}`);
   }
@@ -315,17 +315,36 @@ export function deleteStudioBooking(id: string) {
   saveStudioBookings(listStudioBookings().filter((booking) => booking.id !== id));
 }
 
+export function parseBookingDateTime(value: string) {
+  const label = value.trim().replace(/\s+/g, ' ');
+  const parsed = Date.parse(label);
+  if (!Number.isNaN(parsed)) {
+    const date = new Date(parsed);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    return {
+      date: `${year}-${month}-${day}`,
+      time: `${hour}:${minute}`,
+      label,
+    };
+  }
+  return { date: label, time: '', label };
+}
+
 export function createStudioBooking(input: {
   look: BookableLook;
   clientName: string;
   clientPhone?: string;
   location: string;
-  scheduledDate: string;
-  scheduledTime: string;
+  when: string;
   notes: string;
   destination: 'PORTAL' | 'WHATSAPP';
 }) {
   const reference = `NA-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const parsed = parseBookingDateTime(input.when);
   const booking: StudioBooking = {
     id: crypto.randomUUID(),
     reference,
@@ -339,9 +358,9 @@ export function createStudioBooking(input: {
     imageUrl: input.look.imageUrl,
     durationMinutes: input.look.durationMinutes,
     priceMinor: input.look.startingPriceMinor,
-    scheduledAt: `${input.scheduledDate}T${input.scheduledTime}:00`,
-    scheduledDate: input.scheduledDate,
-    scheduledTime: input.scheduledTime,
+    scheduledAt: parsed.time ? `${parsed.date}T${parsed.time}:00` : parsed.label,
+    scheduledDate: parsed.date,
+    scheduledTime: parsed.time,
     notes: input.notes.trim(),
     destination: input.destination,
     status: 'WAITING',

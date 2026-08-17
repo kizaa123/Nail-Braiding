@@ -1,19 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { formatCedis } from '@/lib/api';
 import { CatalogImage } from '@/components/ui/catalog-image';
 import {
-  BOOKING_TIME_SLOTS,
   DISPLAY_PHONE,
   STUDIO_LOCATION,
   STUDIO_NAME,
   WHATSAPP_PHONE,
   createStudioBooking,
-  formatBookingDate,
-  formatBookingTime,
   openWhatsAppBooking,
   type BookableLook,
 } from '@/lib/studio-bookings';
@@ -47,11 +44,6 @@ function SuccessCheck() {
   );
 }
 
-function todayValue() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
-
 export function BookingModal({
   open,
   look,
@@ -65,8 +57,7 @@ export function BookingModal({
 }) {
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [when, setWhen] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [done, setDone] = useState<'PORTAL' | 'WHATSAPP' | null>(null);
@@ -74,7 +65,6 @@ export function BookingModal({
   const [whatsappHref, setWhatsappHref] = useState('#');
   const [formError, setFormError] = useState('');
   const [mounted, setMounted] = useState(false);
-  const minDate = useMemo(() => todayValue(), []);
   const router = useRouter();
 
   useEffect(() => {
@@ -85,8 +75,7 @@ export function BookingModal({
     if (!open) return;
     setName('');
     setContact('');
-    setDate('');
-    setTime('');
+    setWhen('');
     setLocation(STUDIO_LOCATION);
     setNotes('');
     setDone(null);
@@ -114,8 +103,7 @@ export function BookingModal({
   const missingFields = () => {
     const missing: string[] = [];
     if (!name.trim()) missing.push('name');
-    if (!date) missing.push('date');
-    if (!time) missing.push('time');
+    if (!when.trim()) missing.push('date and time');
     if (!location.trim()) missing.push('location');
     if (destination === 'PORTAL' && !contact.trim()) missing.push('contact');
     return missing;
@@ -140,8 +128,8 @@ export function BookingModal({
           imageUrl: look.imageUrl,
           durationMinutes: look.durationMinutes,
           priceMinor: look.startingPriceMinor,
-          scheduledDate: date,
-          scheduledTime: time,
+          scheduledDate: when.trim(),
+          scheduledTime: '',
           notes,
         });
       }
@@ -153,8 +141,7 @@ export function BookingModal({
       clientName: name,
       clientPhone: selectedDestination === 'PORTAL' ? contact : undefined,
       location,
-      scheduledDate: date,
-      scheduledTime: time,
+      when,
       notes,
       destination: selectedDestination,
     });
@@ -277,37 +264,17 @@ export function BookingModal({
               </label>
             ) : null}
 
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A6E68]">
-                  Date <span className="text-[#D98282]">*</span>
-                </span>
-                <input
-                  type="date"
-                  min={minDate}
-                  value={date}
-                  onChange={(event) => setDate(event.target.value)}
-                  className="mt-1 min-h-11 w-full rounded-2xl border border-[#EADBCE] bg-white px-3 text-sm text-[#171211] outline-none focus:border-[#D98282]"
-                />
-              </label>
-              <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A6E68]">
-                  Time <span className="text-[#D98282]">*</span>
-                </span>
-                <select
-                  value={time}
-                  onChange={(event) => setTime(event.target.value)}
-                  className="mt-1 min-h-11 w-full rounded-2xl border border-[#EADBCE] bg-white px-3 text-sm text-[#171211] outline-none focus:border-[#D98282]"
-                >
-                  <option value="">Select time</option>
-                  {BOOKING_TIME_SLOTS.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {formatBookingTime(slot)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            <label className="block">
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A6E68]">
+                Date and time <span className="text-[#D98282]">*</span>
+              </span>
+              <input
+                value={when}
+                onChange={(event) => setWhen(event.target.value)}
+                placeholder="e.g. 18 Aug 2026, 10:00 AM"
+                className="mt-1 min-h-11 w-full rounded-2xl border border-[#EADBCE] bg-white px-3 text-sm text-[#171211] outline-none placeholder:text-[#A99B95] focus:border-[#D98282]"
+              />
+            </label>
 
             <label className="block">
               <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A6E68]">
@@ -333,10 +300,9 @@ export function BookingModal({
               />
             </label>
 
-            {date ? (
+            {when.trim() ? (
               <p className="text-center text-[11px] text-[#7A6E68]">
-                {formatBookingDate(date)}
-                {time ? ` · ${formatBookingTime(time)}` : ''}
+                {when.trim()}
                 {location.trim() ? ` · ${location.trim()}` : ''}
               </p>
             ) : null}
