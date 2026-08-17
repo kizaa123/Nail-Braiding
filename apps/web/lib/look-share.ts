@@ -67,7 +67,7 @@ export async function requestOrigin() {
 export function siteOrigin() {
   const env = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '');
   if (env && !/localhost|127\.0\.0\.1/i.test(env)) return env;
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return env || 'http://localhost:3000';
+  const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  if (vercelHost) return `https://${vercelHost.replace(/^https?:\/\//, '')}`;
+  return 'http://localhost:3000';
 }

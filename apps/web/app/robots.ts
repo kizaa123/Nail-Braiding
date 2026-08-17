@@ -1,7 +1,10 @@
 import type { MetadataRoute } from 'next';
+import { siteOrigin } from '@/lib/look-share';
+
+export const dynamic = 'force-dynamic';
 
 export default function robots(): MetadataRoute.Robots {
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  const site = siteOrigin();
   return {
     rules: { userAgent: '*', allow: '/', disallow: ['/admin'] },
     sitemap: `${site}/sitemap.xml`,

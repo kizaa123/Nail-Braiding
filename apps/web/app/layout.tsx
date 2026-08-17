@@ -1,17 +1,10 @@
 import type { Metadata } from 'next';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { AppChrome } from '@/components/layout/app-chrome';
+import { siteOrigin } from '@/lib/look-share';
 import './globals.css';
 
-function siteUrl() {
-  const env = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '');
-  if (env && !/localhost|127\.0\.0\.1/i.test(env)) return env;
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return env || 'http://localhost:3000';
-}
-
-const siteUrlResolved = siteUrl();
+const siteUrlResolved = siteOrigin();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrlResolved),
