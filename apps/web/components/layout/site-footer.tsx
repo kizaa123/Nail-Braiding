@@ -13,6 +13,37 @@ function WhatsAppMark({ className }: { className?: string }) {
   );
 }
 
+function SnapchatMark({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M12 2.15c-3.72 0-6.74 2.8-6.74 6.32 0 1.45.41 2.5.41 2.5-.54.41-1.32 1.14-1.77 2.05-.35.7-.35 1.37 0 1.72.44.44 1.1.34 1.66.54-.21.76-.33 1.62-.33 2.53 0 2.3 1.88 3.24 3.46 3.24.64 0 1.18-.2 1.7-.43.46.66 1.16 1.38 2.27 1.38s1.81-.72 2.27-1.38c.52.23 1.06.43 1.7.43 1.58 0 3.46-.94 3.46-3.24 0-.91-.12-1.77-.33-2.53.56-.2 1.22-.1 1.66-.54.35-.35.35-1.02 0-1.72-.45-.91-1.23-1.64-1.77-2.05 0 0 .41-1.05.41-2.5 0-3.52-3.02-6.32-6.74-6.32zm-2.28 5.2c.58 0 1.05.52 1.05 1.16S10.3 9.67 9.72 9.67s-1.05-.52-1.05-1.16.47-1.16 1.05-1.16zm4.56 0c.58 0 1.05.52 1.05 1.16s-.47 1.16-1.05 1.16-1.05-.52-1.05-1.16.47-1.16 1.05-1.16z" />
+    </svg>
+  );
+}
+
+function TikTokMark({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="#25F4EE"
+        d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.44a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.9-2.89 2.89 2.89 0 0 1 2.9-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.16 15.6a6.34 6.34 0 0 0 6.33 6.34 6.34 6.34 0 0 0 6.33-6.34V8.83a8.18 8.18 0 0 0 4.77 1.52V6.9a4.84 4.84 0 0 1-1-.21z"
+      />
+      <path
+        fill="#FE2C55"
+        d="M16.9 5.74A4.83 4.83 0 0 0 19.59 6.7v3.73a8.18 8.18 0 0 1-4.77-1.52v8.03a6.34 6.34 0 0 1-6.33 6.34 6.32 6.32 0 0 1-3.22-.87 6.34 6.34 0 0 0 9.55-5.47V8.91A8.2 8.2 0 0 0 19.6 10.43V6.9a4.86 4.86 0 0 1-2.69-1.16z"
+      />
+      <path
+        fill="#fff"
+        d="M16.82 8.91v8.03a6.34 6.34 0 0 1-6.33 6.34 6.32 6.32 0 0 1-3.22-.87 6.34 6.34 0 0 0 6.33-6.34V8.91a8.2 8.2 0 0 0 3.22 0z"
+      />
+      <path
+        fill="#fff"
+        d="M12.37 2h3.45v.44a4.83 4.83 0 0 1-3.45 4.3V2z"
+      />
+    </svg>
+  );
+}
+
 export function SiteFooter() {
   const whatsappHref = `https://wa.me/${WHATSAPP_PHONE}`;
 
@@ -40,6 +71,35 @@ export function SiteFooter() {
             >
               <WhatsAppMark className="h-5 w-5" />
             </a>
+          </div>
+          <div className="mt-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-champagne">Follow us on</p>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <a
+                href="https://www.snapchat.com/add/sarahashie2025"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Follow on Snapchat sarahashie2025"
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 pr-3.5 text-xs font-semibold text-ivory/90 transition-transform hover:scale-105"
+              >
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#FFFC00] text-[#171211]">
+                  <SnapchatMark className="h-5 w-5" />
+                </span>
+                sarahashie2025
+              </a>
+              <a
+                href="https://www.tiktok.com/@ask4ever0"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Follow on TikTok @ask4ever0"
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 pr-3.5 text-xs font-semibold text-ivory/90 transition-transform hover:scale-105"
+              >
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#111111]">
+                  <TikTokMark className="h-5 w-5" />
+                </span>
+                @ask4ever0
+              </a>
+            </div>
           </div>
         </div>
 

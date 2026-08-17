@@ -135,35 +135,74 @@ export function formatBookingWhen(booking?: string | {
   };
 }
 
-function isLocalHostUrl(url: string) {
-  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
+function fileNameForLook(styleName: string, ext: string) {
+  const safe = styleName.replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'look';
+  return `${safe}.${ext}`;
 }
 
-function absoluteUrl(imageUrl?: string) {
+export async function prepareLookImageFile(imageUrl: string | undefined, styleName: string) {
+  if (typeof window === 'undefined') return null;
   const raw = imageUrl?.trim() ?? '';
-  if (!raw || raw.startsWith('data:') || raw.startsWith('blob:')) return '';
-  if (raw.startsWith('/') && typeof window !== 'undefined') {
-    return new URL(raw, window.location.origin).href;
+  if (!raw) return null;
+  try {
+    if (raw.startsWith('data:image/')) {
+      const match = raw.match(/^data:(image\/[\w.+-]+);base64,([A-Za-z0-9+/=\s]+)$/);
+      if (!match) return null;
+      const binary = atob(match[2].replace(/\s/g, ''));
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      const type = match[1];
+      const ext = type.split('/')[1]?.split('+')[0] || 'jpg';
+      return await fileToJpegFile(new File([bytes], fileNameForLook(styleName, ext), { type }));
+    }
+    const src = raw.startsWith('/') ? new URL(raw, window.location.origin).href : raw;
+    const response = await fetch(src);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    if (blob.size < 20) return null;
+    const type = blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
+    const ext = type.split('/')[1]?.split('+')[0] || 'jpg';
+    return await fileToJpegFile(new File([blob], fileNameForLook(styleName, ext), { type }));
+  } catch {
+    return null;
   }
-  if (/^https?:\/\//i.test(raw)) return raw;
-  return '';
 }
 
-function isDurablePublicImageUrl(url: string) {
-  if (!/^https:\/\//i.test(url) || isLocalHostUrl(url)) return false;
-  if (/\/look-image\//i.test(url)) return false;
-  return true;
+async function fileToJpegFile(file: File) {
+  if (file.type === 'image/jpeg' || file.type === 'image/jpg') return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.86));
+    bitmap.close();
+    if (!blob) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
 }
 
-function lookPreviewLink(input: { imageUrl?: string; slug?: string }) {
-  if (typeof window === 'undefined') return '';
-  const origin = window.location.origin;
-  if (input.slug && !isLocalHostUrl(origin)) {
-    return `${origin}/og/${encodeURIComponent(input.slug)}/photo.jpg`;
+function openWhatsAppHref(href: string) {
+  const mobile = /Android|iPhone|iPad|iPod|webOS|Mobile/i.test(navigator.userAgent);
+  if (mobile) {
+    window.location.href = href;
+    return;
   }
-  const raw = absoluteUrl(input.imageUrl);
-  if (raw && isDurablePublicImageUrl(raw)) return raw;
-  return '';
+  const popup = window.open(href, '_blank');
+  if (!popup || popup.closed) {
+    window.location.href = href;
+    return;
+  }
+  try {
+    popup.opener = null;
+  } catch {
+    /* ignore */
+  }
 }
 
 export function buildWhatsAppBookingMessage(input: {
@@ -184,9 +223,7 @@ export function buildWhatsAppBookingMessage(input: {
   notes?: string;
 }) {
   const { day, time } = formatBookingWhen(input);
-  const preview = lookPreviewLink(input);
   const lines = [
-    ...(preview ? [preview, ''] : []),
     `Hello ${input.studioName}`,
     '',
     'I would like to book this look:',
@@ -230,31 +267,48 @@ export function openWhatsAppBooking(input: Parameters<typeof buildWhatsAppBookin
       reference: undefined,
     });
     const href = buildWhatsAppUrl(text);
-    const mobile = /Android|iPhone|iPad|iPod|webOS|Mobile/i.test(navigator.userAgent);
-    if (mobile) {
-      window.location.href = href;
-      return href;
-    }
-    const popup = window.open(href, '_blank');
-    if (!popup || popup.closed) {
-      window.location.href = href;
-    } else {
-      try {
-        popup.opener = null;
-      } catch {
-        /* ignore */
-      }
-    }
+    openWhatsAppHref(href);
     return href;
   } catch {
     const fallback = `https://wa.me/${WHATSAPP_PHONE}`;
     try {
-      window.location.href = fallback;
+      openWhatsAppHref(fallback);
     } catch {
       /* ignore */
     }
     return fallback;
   }
+}
+
+export async function sendWhatsAppBooking(
+  input: Parameters<typeof buildWhatsAppBookingMessage>[0] & { imageFile?: File | null },
+) {
+  if (typeof window === 'undefined') return '#';
+  const { imageFile, ...messageInput } = input;
+  const text = buildWhatsAppBookingMessage({ ...messageInput, reference: undefined });
+  const href = buildWhatsAppUrl(text);
+
+  if (imageFile && typeof navigator.canShare === 'function') {
+    try {
+      const payload: ShareData = {
+        files: [imageFile],
+        text,
+        title: `Send to ${STUDIO_NAME} (${DISPLAY_PHONE})`,
+      };
+      if (navigator.canShare(payload)) {
+        await navigator.share(payload);
+        return href;
+      }
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        openWhatsAppHref(href);
+        return href;
+      }
+    }
+  }
+
+  openWhatsAppHref(href);
+  return href;
 }
 
 function notifyBookings() {
