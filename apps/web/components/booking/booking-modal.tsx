@@ -8,7 +8,6 @@ import { CatalogImage } from '@/components/ui/catalog-image';
 import {
   BOOKING_TIME_SLOTS,
   DISPLAY_PHONE,
-  STUDIO_LOCATION,
   STUDIO_NAME,
   createStudioBooking,
   formatBookingDate,
@@ -101,13 +100,13 @@ export function BookingModal({
     setContact('');
     setDate('');
     setTime('');
-    setLocation(profile.location || STUDIO_LOCATION);
+    setLocation('');
     setNotes('');
     setDone(null);
     setReference('');
     setWhatsappHref('#');
     setFormError('');
-  }, [open, profile.location]);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -336,7 +335,7 @@ export function BookingModal({
               <input
                 value={location}
                 onChange={(event) => setLocation(event.target.value)}
-                placeholder="e.g. Cape Coast, UCC Campus"
+                placeholder="Your location"
                 className="mt-1 min-h-11 w-full rounded-2xl border border-[#EADBCE] bg-white px-3 text-sm text-[#171211] outline-none placeholder:text-[#A99B95] focus:border-[#D98282]"
               />
             </label>
