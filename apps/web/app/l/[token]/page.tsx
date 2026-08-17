@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { decodeLookShareToken, requestOrigin } from '@/lib/look-share';
+import { decodeLookShareToken, publicLookImageUrl, requestOrigin } from '@/lib/look-share';
 import { STUDIO_LOCATION, STUDIO_NAME } from '@/lib/studio-bookings';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +15,7 @@ export async function generateMetadata({
   const look = decodeLookShareToken(token);
   if (!look) return { title: 'Look' };
   const origin = await requestOrigin();
-  const image = `${origin}/l/${token}/image`;
+  const photo = publicLookImageUrl(look.u, origin) || `${origin}/l/${token}/image`;
   const title = `${look.n} · ${STUDIO_NAME}`;
   const description = `Book ${look.n} at ${STUDIO_NAME}, ${STUDIO_LOCATION}.`;
   return {
@@ -28,13 +28,13 @@ export async function generateMetadata({
       siteName: STUDIO_NAME,
       title,
       description,
-      images: [{ url: image, width: 1080, height: 1080, alt: look.n, type: 'image/jpeg' }],
+      images: [{ url: photo, width: 1080, height: 1080, alt: look.n, type: 'image/jpeg' }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [image],
+      images: [photo],
     },
   };
 }

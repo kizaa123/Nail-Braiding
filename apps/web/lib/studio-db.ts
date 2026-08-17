@@ -124,6 +124,31 @@ async function uniqueSlug(name: string, ignoreId?: string) {
   }
 }
 
+export async function dbGetPublicStyleBySlug(slug: string) {
+  const key = slug.trim();
+  if (!key) return null;
+  if (getStudioSql()) {
+    const sql = await ensureStudioSchema();
+    const rows = await sql<StyleRow[]>`
+      select * from studio_styles
+      where slug = ${key} and published = true and archived = false
+      limit 1
+    `;
+    return rows[0] ? mapStyle(rows[0]) : null;
+  }
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('studio_styles')
+    .select('*')
+    .eq('slug', key)
+    .eq('published', true)
+    .eq('archived', false)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapStyle(data as StyleRow);
+}
+
 export async function dbListStyles(scope: 'public' | 'all') {
   if (getStudioSql()) {
     const sql = await ensureStudioSchema();

@@ -8,6 +8,7 @@ export const DISPLAY_PHONE = '0559535682';
 
 export interface BookableLook {
   id: string;
+  slug?: string;
   name: string;
   categoryName: string;
   kind: 'HAIR' | 'NAILS';
@@ -108,13 +109,10 @@ export function formatBookingWhen(booking?: string | {
   }
 
   if (booking.scheduledDate) {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(booking.scheduledDate)) {
-      return {
-        day: formatBookingDate(booking.scheduledDate),
-        time: booking.scheduledTime ? formatBookingTime(booking.scheduledTime) : '',
-      };
-    }
-    return { day: booking.scheduledDate, time: booking.scheduledTime || '' };
+    return {
+      day: formatBookingDate(booking.scheduledDate),
+      time: booking.scheduledTime ? formatBookingTime(booking.scheduledTime) : '',
+    };
   }
 
   if (!booking.scheduledAt) {
@@ -157,18 +155,15 @@ function isDurablePublicImageUrl(url: string) {
   return true;
 }
 
-function messagePhotoLine(imageUrl?: string) {
-  const raw = absoluteUrl(imageUrl);
-  if (!raw || isLocalHostUrl(raw)) return '';
-  if (/^https?:\/\//i.test(raw)) return raw;
+function lookPreviewLink(input: { imageUrl?: string; slug?: string }) {
+  if (typeof window === 'undefined') return '';
+  const origin = window.location.origin;
+  if (input.slug && !isLocalHostUrl(origin)) {
+    return `${origin}/og/${encodeURIComponent(input.slug)}/photo.jpg`;
+  }
+  const raw = absoluteUrl(input.imageUrl);
+  if (raw && isDurablePublicImageUrl(raw)) return raw;
   return '';
-}
-
-function syncLookPreviewUrl(imageUrl?: string) {
-  const raw = imageUrl?.trim() ?? '';
-  if (!raw || raw.startsWith('data:') || raw.startsWith('blob:') || typeof window === 'undefined') return '';
-  const abs = raw.startsWith('/') ? new URL(raw, window.location.origin).href : raw;
-  return isDurablePublicImageUrl(abs) ? abs : '';
 }
 
 export function buildWhatsAppBookingMessage(input: {
@@ -179,6 +174,7 @@ export function buildWhatsAppBookingMessage(input: {
   location?: string;
   styleName: string;
   categoryName: string;
+  slug?: string;
   imageUrl?: string;
   durationMinutes: number;
   priceMinor: number;
@@ -188,9 +184,9 @@ export function buildWhatsAppBookingMessage(input: {
   notes?: string;
 }) {
   const { day, time } = formatBookingWhen(input);
-  const photo = messagePhotoLine(input.imageUrl);
+  const preview = lookPreviewLink(input);
   const lines = [
-    ...(photo ? [photo, ''] : []),
+    ...(preview ? [preview, ''] : []),
     `Hello ${input.studioName}`,
     '',
     'I would like to book this look:',
@@ -208,7 +204,10 @@ export function buildWhatsAppBookingMessage(input: {
   if (input.clientPhone?.trim()) {
     lines.push(`*Phone:* ${input.clientPhone.trim()}`);
   }
-  lines.push('', `*Date & time:* ${time ? `${day} · ${time}` : day}`);
+  lines.push('', `*Date:* ${day}`);
+  if (time) {
+    lines.push(`*Time:* ${time}`);
+  }
   if (input.reference?.trim()) {
     lines.push(`*Reference:* ${input.reference.trim()}`);
   }
@@ -229,7 +228,6 @@ export function openWhatsAppBooking(input: Parameters<typeof buildWhatsAppBookin
     const text = buildWhatsAppBookingMessage({
       ...input,
       reference: undefined,
-      imageUrl: syncLookPreviewUrl(input.imageUrl),
     });
     const href = buildWhatsAppUrl(text);
     const mobile = /Android|iPhone|iPad|iPod|webOS|Mobile/i.test(navigator.userAgent);
@@ -315,36 +313,17 @@ export function deleteStudioBooking(id: string) {
   saveStudioBookings(listStudioBookings().filter((booking) => booking.id !== id));
 }
 
-export function parseBookingDateTime(value: string) {
-  const label = value.trim().replace(/\s+/g, ' ');
-  const parsed = Date.parse(label);
-  if (!Number.isNaN(parsed)) {
-    const date = new Date(parsed);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hour = String(date.getHours()).padStart(2, '0');
-    const minute = String(date.getMinutes()).padStart(2, '0');
-    return {
-      date: `${year}-${month}-${day}`,
-      time: `${hour}:${minute}`,
-      label,
-    };
-  }
-  return { date: label, time: '', label };
-}
-
 export function createStudioBooking(input: {
   look: BookableLook;
   clientName: string;
   clientPhone?: string;
   location: string;
-  when: string;
+  scheduledDate: string;
+  scheduledTime: string;
   notes: string;
   destination: 'PORTAL' | 'WHATSAPP';
 }) {
   const reference = `NA-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-  const parsed = parseBookingDateTime(input.when);
   const booking: StudioBooking = {
     id: crypto.randomUUID(),
     reference,
@@ -358,9 +337,9 @@ export function createStudioBooking(input: {
     imageUrl: input.look.imageUrl,
     durationMinutes: input.look.durationMinutes,
     priceMinor: input.look.startingPriceMinor,
-    scheduledAt: parsed.time ? `${parsed.date}T${parsed.time}:00` : parsed.label,
-    scheduledDate: parsed.date,
-    scheduledTime: parsed.time,
+    scheduledAt: `${input.scheduledDate}T${input.scheduledTime}:00`,
+    scheduledDate: input.scheduledDate,
+    scheduledTime: input.scheduledTime,
     notes: input.notes.trim(),
     destination: input.destination,
     status: 'WAITING',

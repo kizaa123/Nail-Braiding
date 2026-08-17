@@ -1,19 +1,39 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { formatCedis } from '@/lib/api';
 import { CatalogImage } from '@/components/ui/catalog-image';
 import {
+  BOOKING_TIME_SLOTS,
   DISPLAY_PHONE,
   STUDIO_LOCATION,
   STUDIO_NAME,
   WHATSAPP_PHONE,
   createStudioBooking,
+  formatBookingDate,
+  formatBookingTime,
   openWhatsAppBooking,
   type BookableLook,
 } from '@/lib/studio-bookings';
+
+function todayValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+function CalendarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="16" rx="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M3 10h18" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 3v4M16 3v4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <rect x="7" y="13" width="3" height="3" rx="0.6" fill="currentColor" />
+      <rect x="11.5" y="13" width="3" height="3" rx="0.6" fill="currentColor" />
+    </svg>
+  );
+}
 
 function SuccessCheck() {
   return (
@@ -57,7 +77,8 @@ export function BookingModal({
 }) {
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
-  const [when, setWhen] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [done, setDone] = useState<'PORTAL' | 'WHATSAPP' | null>(null);
@@ -65,6 +86,7 @@ export function BookingModal({
   const [whatsappHref, setWhatsappHref] = useState('#');
   const [formError, setFormError] = useState('');
   const [mounted, setMounted] = useState(false);
+  const minDate = useMemo(() => todayValue(), []);
   const router = useRouter();
 
   useEffect(() => {
@@ -75,7 +97,8 @@ export function BookingModal({
     if (!open) return;
     setName('');
     setContact('');
-    setWhen('');
+    setDate('');
+    setTime('');
     setLocation(STUDIO_LOCATION);
     setNotes('');
     setDone(null);
@@ -103,7 +126,8 @@ export function BookingModal({
   const missingFields = () => {
     const missing: string[] = [];
     if (!name.trim()) missing.push('name');
-    if (!when.trim()) missing.push('date and time');
+    if (!date) missing.push('date');
+    if (!time) missing.push('time');
     if (!location.trim()) missing.push('location');
     if (destination === 'PORTAL' && !contact.trim()) missing.push('contact');
     return missing;
@@ -125,11 +149,12 @@ export function BookingModal({
           location,
           styleName: look.name,
           categoryName: look.categoryName,
+          slug: look.slug,
           imageUrl: look.imageUrl,
           durationMinutes: look.durationMinutes,
           priceMinor: look.startingPriceMinor,
-          scheduledDate: when.trim(),
-          scheduledTime: '',
+          scheduledDate: date,
+          scheduledTime: time,
           notes,
         });
       }
@@ -141,7 +166,8 @@ export function BookingModal({
       clientName: name,
       clientPhone: selectedDestination === 'PORTAL' ? contact : undefined,
       location,
-      when,
+      scheduledDate: date,
+      scheduledTime: time,
       notes,
       destination: selectedDestination,
     });
@@ -264,17 +290,42 @@ export function BookingModal({
               </label>
             ) : null}
 
-            <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A6E68]">
-                Date and time <span className="text-[#D98282]">*</span>
-              </span>
-              <input
-                value={when}
-                onChange={(event) => setWhen(event.target.value)}
-                placeholder="e.g. 18 Aug 2026, 10:00 AM"
-                className="mt-1 min-h-11 w-full rounded-2xl border border-[#EADBCE] bg-white px-3 text-sm text-[#171211] outline-none placeholder:text-[#A99B95] focus:border-[#D98282]"
-              />
-            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A6E68]">
+                  Date <span className="text-[#D98282]">*</span>
+                </span>
+                <span className="relative mt-1 block">
+                  <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[#A99B95]">
+                    <CalendarIcon />
+                  </span>
+                  <input
+                    type="date"
+                    min={minDate}
+                    value={date}
+                    onChange={(event) => setDate(event.target.value)}
+                    className="booking-date-input min-h-11 w-full rounded-2xl border border-[#EADBCE] bg-white pl-10 pr-3 text-sm text-[#171211] outline-none focus:border-[#D98282]"
+                  />
+                </span>
+              </label>
+              <label className="block">
+                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A6E68]">
+                  Time <span className="text-[#D98282]">*</span>
+                </span>
+                <select
+                  value={time}
+                  onChange={(event) => setTime(event.target.value)}
+                  className="mt-1 min-h-11 w-full rounded-2xl border border-[#EADBCE] bg-white px-3 text-sm text-[#171211] outline-none focus:border-[#D98282]"
+                >
+                  <option value="">Select time</option>
+                  {BOOKING_TIME_SLOTS.map((slot) => (
+                    <option key={slot} value={slot}>
+                      {formatBookingTime(slot)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
             <label className="block">
               <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A6E68]">
@@ -300,9 +351,10 @@ export function BookingModal({
               />
             </label>
 
-            {when.trim() ? (
+            {date ? (
               <p className="text-center text-[11px] text-[#7A6E68]">
-                {when.trim()}
+                {formatBookingDate(date)}
+                {time ? ` · ${formatBookingTime(time)}` : ''}
                 {location.trim() ? ` · ${location.trim()}` : ''}
               </p>
             ) : null}

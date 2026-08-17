@@ -38,6 +38,17 @@ export function lookSharePath(imageUrl: string, name: string) {
   return `/l/${encodeLookShareToken(imageUrl, name)}`;
 }
 
+export function publicLookImageUrl(imageUrl: string | undefined, origin: string) {
+  const raw = imageUrl?.trim() ?? '';
+  if (!raw || raw.startsWith('data:') || raw.startsWith('blob:')) return '';
+  const base = origin.replace(/\/$/, '');
+  if (raw.startsWith('https://')) return raw;
+  if (raw.startsWith('/') && base && !/localhost|127\.0\.0\.1/i.test(base)) {
+    return `${base}${raw}`;
+  }
+  return '';
+}
+
 export async function requestOrigin() {
   const { headers } = await import('next/headers');
   const headerList = await headers();

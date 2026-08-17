@@ -88,6 +88,7 @@ export function StyleDetailClient({ slug, initialStyles = [] }: { slug: string; 
           <StyleReserve
             look={{
               id: style.id,
+              slug: style.slug,
               name: style.name,
               categoryName: style.categoryName,
               kind: style.kind,
