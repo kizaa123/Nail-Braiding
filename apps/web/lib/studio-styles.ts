@@ -219,60 +219,82 @@ export function artistNames(ids: string[]) {
   return STUDIO_ARTISTS.filter((artist) => ids.includes(artist.id)).map((artist) => artist.name);
 }
 
+async function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Could not read image'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function drawToJpeg(source: CanvasImageSource, width: number, height: number) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not read image');
+  ctx.drawImage(source, 0, 0, width, height);
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((value) => (value ? resolve(value) : reject(new Error('Could not compress image'))), 'image/jpeg', 0.82);
+  });
+  return blob;
+}
+
 async function compressStyleFile(file: File) {
+  const max = 900;
   try {
     const bitmap = await createImageBitmap(file);
-    const max = 900;
     const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-    const width = Math.round(bitmap.width * scale);
-    const height = Math.round(bitmap.height * scale);
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Could not read image');
-    ctx.drawImage(bitmap, 0, 0, width, height);
+    const blob = await drawToJpeg(bitmap, Math.round(bitmap.width * scale), Math.round(bitmap.height * scale));
     bitmap.close();
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((value) => (value ? resolve(value) : reject(new Error('Could not compress image'))), 'image/jpeg', 0.82);
-    });
-    return new File([blob], 'look.jpg', { type: 'image/jpeg' });
+    return blob;
   } catch {
-    if (/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) {
-      return new File([file], 'look.jpg', { type: file.type === 'image/png' ? 'image/png' : 'image/jpeg' });
-    }
-    throw new Error('Could not read that photo. Try a JPG or PNG.');
+    /* fall through to image element */
+  }
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Could not read that photo. Try a JPG or PNG.'));
+      img.src = objectUrl;
+    });
+    const scale = Math.min(1, max / Math.max(image.naturalWidth, image.naturalHeight));
+    return await drawToJpeg(
+      image,
+      Math.round(image.naturalWidth * scale) || max,
+      Math.round(image.naturalHeight * scale) || max,
+    );
+  } finally {
+    URL.revokeObjectURL(objectUrl);
   }
 }
 
-export async function fileToStyleImage(file: File) {
-  const jpeg = await compressStyleFile(file);
+async function postLookImage(image: string) {
   const { studioRequest, cloudMissing, requestError } = await import('@/lib/studio-http');
-  const form = new FormData();
-  form.append('file', jpeg, 'look.jpg');
+  const body = JSON.stringify({ image, contentType: 'image/jpeg' });
   let result = await studioRequest<{ url?: string; error?: string; cloud?: boolean }>('/api/studio/upload', {
     method: 'POST',
-    body: form,
+    body,
     timeoutMs: 45000,
   });
-  if (!result.ok) {
+  if (!result.ok && result.status === 0) {
     result = await studioRequest<{ url?: string; error?: string; cloud?: boolean }>('/api/studio/upload', {
       method: 'POST',
-      body: form,
+      body,
       timeoutMs: 45000,
     });
   }
   const uploadedUrl = result.data?.url ?? '';
   if (result.ok && isPublicLookImageUrl(uploadedUrl)) return uploadedUrl.trim();
-  if (cloudMissing(result.status, result.data) && allowLocalCatalog()) {
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(new Error('Could not read image'));
-      reader.readAsDataURL(jpeg);
-    });
-  }
+  if (cloudMissing(result.status, result.data) && allowLocalCatalog()) return image;
   throw new Error(requestError(result, 'Could not upload that photo. Sign in again and retry.'));
+}
+
+export async function fileToStyleImage(file: File) {
+  const jpeg = await compressStyleFile(file);
+  return postLookImage(await blobToDataUrl(jpeg));
 }
 
 function mergeStyle(style: StudioStyle) {
@@ -315,19 +337,11 @@ async function dataUrlToFile(dataUrl: string, name: string) {
 async function uploadLocalImage(imageUrl: string) {
   if (isPublicLookImageUrl(imageUrl)) return imageUrl.trim();
   if (!imageUrl.startsWith('data:image/')) return '';
-  const file = await dataUrlToFile(imageUrl, 'look');
-  if (!file) return '';
-  const jpeg = await compressStyleFile(file).catch(() => new File([file], 'look.jpg', { type: file.type || 'image/jpeg' }));
-  const { studioRequest } = await import('@/lib/studio-http');
-  const form = new FormData();
-  form.append('file', jpeg, 'look.jpg');
-  const uploaded = await studioRequest<{ url?: string }>('/api/studio/upload', {
-    method: 'POST',
-    body: form,
-    timeoutMs: 45000,
-  });
-  const uploadedUrl = uploaded.data?.url ?? '';
-  return isPublicLookImageUrl(uploadedUrl) ? uploadedUrl.trim() : '';
+  try {
+    return await postLookImage(imageUrl);
+  } catch {
+    return '';
+  }
 }
 
 export async function syncLocalStylesToCloud(localSnapshot?: StudioStyle[]) {

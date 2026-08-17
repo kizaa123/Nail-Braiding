@@ -10,7 +10,7 @@ export function isPublicLookImageUrl(url: string | null | undefined) {
 
 export async function uploadLookImage(bytes: Buffer, contentType: string) {
   if (studioCloudinaryConfigured()) {
-    return uploadToCloudinary(bytes, contentType);
+    return uploadToCloudinary(bytes);
   }
   return uploadToSupabase(bytes, contentType);
 }
@@ -40,26 +40,49 @@ export async function persistLookImageUrl(imageUrl: string | undefined) {
   return '';
 }
 
-async function uploadToCloudinary(bytes: Buffer, contentType: string) {
-  const cloudName = (process.env.CLOUDINARY_CLOUD_NAME || '')
-    .trim()
-    .replace(/^https?:\/\//i, '')
-    .split('/')[0];
+function resolveCloudinaryCloudName() {
+  const fromUrl = (process.env.CLOUDINARY_URL || '').trim().match(/@([^/?#]+)/);
+  if (fromUrl?.[1]) return fromUrl[1].trim();
+
+  const raw = (process.env.CLOUDINARY_CLOUD_NAME || '').trim().replace(/^['"]|['"]$/g, '');
+  const hosted = raw.match(/(?:res|api)\.cloudinary\.com\/(?:v1_1\/)?([^/]+)/i);
+  if (hosted?.[1]) return hosted[1];
+  return raw.replace(/^https?:\/\//i, '').split('/')[0].replace(/[^a-z0-9_-]/gi, '');
+}
+
+function configureCloudinary() {
+  const cloudinaryUrl = process.env.CLOUDINARY_URL?.trim();
+  if (cloudinaryUrl) {
+    cloudinary.config({ url: cloudinaryUrl, secure: true });
+    return;
+  }
   cloudinary.config({
-    cloud_name: cloudName,
+    cloud_name: resolveCloudinaryCloudName(),
     api_key: process.env.CLOUDINARY_API_KEY?.trim(),
     api_secret: process.env.CLOUDINARY_API_SECRET?.trim(),
     secure: true,
   });
-  const mime = contentType.startsWith('image/') ? contentType : 'image/jpeg';
-  const uploaded = await cloudinary.uploader.upload(`data:${mime};base64,${bytes.toString('base64')}`, {
-    folder: 'kas-looks',
-    public_id: `look_${Date.now()}`,
-    resource_type: 'image',
-    overwrite: false,
+}
+
+async function uploadToCloudinary(bytes: Buffer) {
+  configureCloudinary();
+  return new Promise<string>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: 'image',
+        public_id: `kaslook_${Date.now()}`,
+        overwrite: false,
+      },
+      (error, result) => {
+        if (error || !result?.secure_url) {
+          reject(new Error(error?.message || 'Cloudinary did not return a photo URL.'));
+          return;
+        }
+        resolve(result.secure_url);
+      },
+    );
+    stream.end(bytes);
   });
-  if (!uploaded.secure_url) throw new Error('Cloudinary did not return a photo URL.');
-  return uploaded.secure_url;
 }
 
 async function uploadToSupabase(bytes: Buffer, contentType: string) {
