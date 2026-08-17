@@ -143,7 +143,7 @@ export default function AdminStylesPage() {
                 className="block w-full text-left"
               >
                 <div className="relative aspect-[5/4] bg-[#F7F1EA]">
-                  <CatalogImage src={style.imageUrl} alt={style.name} className="object-cover" sizes="(max-width: 768px) 50vw, 20vw" />
+                  <CatalogImage src={style.imageUrl} alt="" className="object-cover" sizes="(max-width: 768px) 50vw, 20vw" />
                   <div className="absolute left-2 top-2 flex flex-wrap gap-1">
                     <span className="rounded-full bg-[#D98282] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-white">
                       {style.kind === 'HAIR' ? 'Hair' : 'Nails'}

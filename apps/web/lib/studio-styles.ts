@@ -52,6 +52,12 @@ function notify() {
   window.dispatchEvent(new Event(STUDIO_STYLES_EVENT));
 }
 
+export function isPublicLookImageUrl(url: string | null | undefined) {
+  const raw = url?.trim() ?? '';
+  if (!raw || raw.startsWith('data:') || raw.includes('/look-image/')) return false;
+  return /^https?:\/\//i.test(raw);
+}
+
 export function slugifyStyleName(name: string) {
   const base = name
     .toLowerCase()
@@ -93,22 +99,37 @@ export function listPublicStyles(): StudioStyle[] {
     .sort((a, b) => Number(b.featured) - Number(a.featured) || b.updatedAt.localeCompare(a.updatedAt));
 }
 
-export function saveStudioStyles(styles: StudioStyle[]) {
+function compactCatalog(styles: StudioStyle[]) {
+  return styles.map((style) => ({
+    ...style,
+    imageUrl: isPublicLookImageUrl(style.imageUrl)
+      ? style.imageUrl.trim()
+      : allowLocalCatalog()
+        ? style.imageUrl
+        : '',
+  }));
+}
+
+function cacheStudioStyles(styles: StudioStyle[], emitEvent: boolean) {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(STUDIO_STYLES_KEY, JSON.stringify(styles));
+    window.localStorage.setItem(STUDIO_STYLES_KEY, JSON.stringify(compactCatalog(styles)));
   } catch {
     try {
       const compact = styles.map((style) => ({
         ...style,
-        imageUrl: style.imageUrl.startsWith('data:') ? '' : style.imageUrl,
+        imageUrl: isPublicLookImageUrl(style.imageUrl) ? style.imageUrl.trim() : '',
       }));
       window.localStorage.setItem(STUDIO_STYLES_KEY, JSON.stringify(compact));
     } catch {
       /* ignore quota */
     }
   }
-  notify();
+  if (emitEvent) notify();
+}
+
+export function saveStudioStyles(styles: StudioStyle[]) {
+  cacheStudioStyles(styles, true);
 }
 
 export function uniqueStyleSlug(name: string, ignoreId?: string) {
@@ -241,7 +262,8 @@ export async function fileToStyleImage(file: File) {
       timeoutMs: 45000,
     });
   }
-  if (result.ok && result.data?.url) return result.data.url;
+  const uploadedUrl = result.data?.url ?? '';
+  if (result.ok && isPublicLookImageUrl(uploadedUrl)) return uploadedUrl.trim();
   if (cloudMissing(result.status, result.data) && allowLocalCatalog()) {
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -260,12 +282,13 @@ function mergeStyle(style: StudioStyle) {
 
 export async function fetchStudioStyles() {
   const { studioRequest } = await import('@/lib/studio-http');
-  const admin = Boolean((await import('@/lib/studio-session')).readStudioWriteToken());
+  const session = await import('@/lib/studio-session');
+  const admin = Boolean(session.readStudioWriteToken() || session.readStudioSession());
   const result = await studioRequest<{ styles?: StudioStyle[]; cloud?: boolean }>(
     admin ? '/api/studio/styles?scope=all' : '/api/studio/styles',
   );
   if (result.ok && Array.isArray(result.data?.styles)) {
-    saveStudioStyles(result.data.styles);
+    cacheStudioStyles(result.data.styles, false);
     return result.data.styles;
   }
   if (!allowLocalCatalog()) return [];
@@ -289,27 +312,54 @@ async function dataUrlToFile(dataUrl: string, name: string) {
   return new File([bytes], `${name}.${ext}`, { type });
 }
 
-export async function syncLocalStylesToCloud() {
+async function uploadLocalImage(imageUrl: string) {
+  if (isPublicLookImageUrl(imageUrl)) return imageUrl.trim();
+  if (!imageUrl.startsWith('data:image/')) return '';
+  const file = await dataUrlToFile(imageUrl, 'look');
+  if (!file) return '';
+  const jpeg = await compressStyleFile(file).catch(() => new File([file], 'look.jpg', { type: file.type || 'image/jpeg' }));
+  const { studioRequest } = await import('@/lib/studio-http');
+  const form = new FormData();
+  form.append('file', jpeg, 'look.jpg');
+  const uploaded = await studioRequest<{ url?: string }>('/api/studio/upload', {
+    method: 'POST',
+    body: form,
+    timeoutMs: 45000,
+  });
+  const uploadedUrl = uploaded.data?.url ?? '';
+  return isPublicLookImageUrl(uploadedUrl) ? uploadedUrl.trim() : '';
+}
+
+export async function syncLocalStylesToCloud(localSnapshot?: StudioStyle[]) {
   if (!(await studioCloudEnabled())) return { cloud: false, synced: 0 };
   const { studioRequest } = await import('@/lib/studio-http');
   const remoteRes = await studioRequest<{ styles?: StudioStyle[] }>('/api/studio/styles?scope=all');
   if (!remoteRes.ok) return { cloud: true, synced: 0 };
   const remote = remoteRes.data?.styles ?? [];
-  const remoteKeys = new Set(remote.flatMap((style) => [style.id, style.slug]));
-  const local = listStudioStyles();
+  const remoteById = new Map(remote.map((style) => [style.id, style]));
+  const remoteBySlug = new Map(remote.map((style) => [style.slug, style]));
+  const local = localSnapshot?.length ? localSnapshot : listStudioStyles();
   let synced = 0;
+
   for (const style of local) {
-    if (remoteKeys.has(style.id) || remoteKeys.has(style.slug)) continue;
-    let imageUrl = style.imageUrl;
-    if (imageUrl.startsWith('data:')) {
-      const file = await dataUrlToFile(imageUrl, style.slug || 'look');
-      if (!file) continue;
-      const form = new FormData();
-      form.append('file', file, file.name);
-      const uploaded = await studioRequest<{ url?: string }>('/api/studio/upload', { method: 'POST', body: form });
-      if (!uploaded.ok || !uploaded.data?.url) continue;
-      imageUrl = uploaded.data.url;
+    const existing = remoteById.get(style.id) ?? remoteBySlug.get(style.slug);
+    const remoteHasPhoto = isPublicLookImageUrl(existing?.imageUrl);
+    const localHasPhoto = isPublicLookImageUrl(style.imageUrl) || style.imageUrl.startsWith('data:');
+
+    if (existing && remoteHasPhoto) continue;
+
+    const imageUrl = localHasPhoto ? await uploadLocalImage(style.imageUrl) : '';
+    if (existing) {
+      if (!imageUrl) continue;
+      const saved = await studioRequest<{ style?: StudioStyle }>(`/api/studio/styles/${existing.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ imageUrl }),
+        timeoutMs: 30000,
+      });
+      if (saved.ok) synced += 1;
+      continue;
     }
+
     const saved = await studioRequest<{ style?: StudioStyle }>('/api/studio/styles', {
       method: 'POST',
       body: JSON.stringify({
@@ -325,6 +375,7 @@ export async function syncLocalStylesToCloud() {
         featured: style.featured,
         published: style.published,
       }),
+      timeoutMs: 30000,
     });
     if (saved.ok) synced += 1;
   }
@@ -332,18 +383,30 @@ export async function syncLocalStylesToCloud() {
   return { cloud: true, synced };
 }
 
+async function durableDraft(draft: StyleDraft): Promise<StyleDraft> {
+  const imageUrl = draft.imageUrl?.trim() ?? '';
+  if (!imageUrl || isPublicLookImageUrl(imageUrl)) return { ...draft, imageUrl };
+  if (imageUrl.startsWith('data:image/')) {
+    const file = await dataUrlToFile(imageUrl, 'look');
+    if (!file) throw new Error('Could not read that photo. Choose the image again.');
+    return { ...draft, imageUrl: await fileToStyleImage(file) };
+  }
+  return draft;
+}
+
 export async function upsertStudioStyle(draft: StyleDraft) {
+  const payload = await durableDraft(draft);
   const { studioRequest, cloudMissing, requestError } = await import('@/lib/studio-http');
   let result = await studioRequest<{ style?: StudioStyle; error?: string; cloud?: boolean }>('/api/studio/styles', {
     method: 'POST',
-    body: JSON.stringify(draft),
-    timeoutMs: 30000,
+    body: JSON.stringify(payload),
+    timeoutMs: 45000,
   });
   if (!result.ok && result.status === 0) {
     result = await studioRequest<{ style?: StudioStyle; error?: string; cloud?: boolean }>('/api/studio/styles', {
       method: 'POST',
-      body: JSON.stringify(draft),
-      timeoutMs: 30000,
+      body: JSON.stringify(payload),
+      timeoutMs: 45000,
     });
   }
   if (result.ok && result.data?.style) {
@@ -351,17 +414,23 @@ export async function upsertStudioStyle(draft: StyleDraft) {
     return result.data.style;
   }
   if (cloudMissing(result.status, result.data) && allowLocalCatalog()) {
-    return upsertStudioStyleLocal(draft);
+    return upsertStudioStyleLocal(payload);
   }
   throw new Error(requestError(result, 'Could not save this look. Sign in again and try once more.'));
 }
 
 export async function patchStudioStyle(id: string, patch: Partial<StudioStyle>) {
+  const nextPatch = { ...patch };
+  if (typeof nextPatch.imageUrl === 'string' && nextPatch.imageUrl.startsWith('data:image/')) {
+    const file = await dataUrlToFile(nextPatch.imageUrl, 'look');
+    if (!file) throw new Error('Could not read that photo. Choose the image again.');
+    nextPatch.imageUrl = await fileToStyleImage(file);
+  }
   const { studioRequest, cloudMissing, requestError } = await import('@/lib/studio-http');
   const result = await studioRequest<{ style?: StudioStyle; error?: string; cloud?: boolean }>(`/api/studio/styles/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify(patch),
-    timeoutMs: 30000,
+    body: JSON.stringify(nextPatch),
+    timeoutMs: 45000,
   });
   if (result.ok && result.data?.style) {
     mergeStyle(result.data.style);

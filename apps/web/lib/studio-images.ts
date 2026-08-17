@@ -2,6 +2,12 @@ import { v2 as cloudinary } from 'cloudinary';
 import { getSupabaseAdmin, studioCloudinaryConfigured } from '@/lib/supabase-admin';
 import { getLookImage } from '@/lib/look-image-store';
 
+export function isPublicLookImageUrl(url: string | null | undefined) {
+  const raw = url?.trim() ?? '';
+  if (!raw || raw.startsWith('data:') || raw.includes('/look-image/')) return false;
+  return /^https?:\/\//i.test(raw);
+}
+
 export async function uploadLookImage(bytes: Buffer, contentType: string) {
   if (studioCloudinaryConfigured()) {
     return uploadToCloudinary(bytes, contentType);
@@ -12,14 +18,14 @@ export async function uploadLookImage(bytes: Buffer, contentType: string) {
 export async function persistLookImageUrl(imageUrl: string | undefined) {
   const raw = imageUrl?.trim() ?? '';
   if (!raw) return '';
-  if (raw.startsWith('https://') || raw.startsWith('http://')) return raw;
+  if (isPublicLookImageUrl(raw)) return raw;
 
   if (raw.startsWith('data:image/')) {
     const match = raw.match(/^data:(image\/[\w.+-]+);base64,([A-Za-z0-9+/=\s]+)$/);
-    if (!match) return raw;
+    if (!match) return '';
     const bytes = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
     const uploaded = await uploadLookImage(bytes, match[1]);
-    return uploaded || raw;
+    return uploaded && isPublicLookImageUrl(uploaded) ? uploaded : '';
   }
 
   const lookId = raw.includes('/look-image/') ? raw.split('/look-image/')[1]?.split(/[/?#]/)[0] : '';
@@ -27,11 +33,11 @@ export async function persistLookImageUrl(imageUrl: string | undefined) {
     const stored = getLookImage(lookId);
     if (stored) {
       const uploaded = await uploadLookImage(stored.bytes, stored.type);
-      if (uploaded) return uploaded;
+      if (uploaded && isPublicLookImageUrl(uploaded)) return uploaded;
     }
   }
 
-  return raw;
+  return '';
 }
 
 async function uploadToCloudinary(bytes: Buffer, contentType: string) {

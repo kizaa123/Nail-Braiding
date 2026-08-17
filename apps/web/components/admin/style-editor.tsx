@@ -170,7 +170,7 @@ export function StyleEditorModal({
           <input
             ref={fileRef}
             type="file"
-            accept="image/*,image/jpeg,image/png,image/webp,image/heic"
+            accept="image/*,image/jpeg,image/png,image/webp,image/heic,image/heif"
             className="sr-only"
             onChange={(event) => {
               void onPickImage(event.target.files?.[0]);

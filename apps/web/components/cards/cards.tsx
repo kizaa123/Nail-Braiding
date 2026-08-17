@@ -48,7 +48,7 @@ export function StyleCard({
         <Link href={href} className="absolute inset-0">
           <CatalogImage
             src={image}
-            alt={name}
+            alt=""
             sizes="(max-width: 768px) 50vw, (max-width: 1024px) 50vw, 25vw"
             className="object-cover transition-transform duration-700 group-hover:scale-105"
           />

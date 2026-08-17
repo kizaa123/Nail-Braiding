@@ -5,25 +5,20 @@ import {
   STUDIO_STYLES_EVENT,
   allowLocalCatalog,
   fetchStudioStyles,
+  isPublicLookImageUrl,
   listStudioStyles,
   syncLocalStylesToCloud,
   type StudioStyle,
 } from '@/lib/studio-styles';
-import { readStudioWriteToken } from '@/lib/studio-session';
+import { readStudioSession, readStudioWriteToken } from '@/lib/studio-session';
 
-function isDurableImageUrl(url: string | undefined) {
-  const raw = url?.trim() ?? '';
-  if (!raw || raw.includes('/look-image/')) return false;
-  return raw.startsWith('https://') || raw.startsWith('http://') || raw.startsWith('data:');
-}
-
-function preferDurableImages(remote: StudioStyle[], seed: StudioStyle[]) {
+function preferPublicImages(remote: StudioStyle[], seed: StudioStyle[]) {
   if (!remote.length) return seed;
   const seedById = new Map(seed.map((style) => [style.id, style]));
   return remote.map((style) => {
-    if (isDurableImageUrl(style.imageUrl)) return style;
+    if (isPublicLookImageUrl(style.imageUrl)) return style;
     const fallback = seedById.get(style.id)?.imageUrl ?? '';
-    return isDurableImageUrl(fallback) ? { ...style, imageUrl: fallback } : style;
+    return isPublicLookImageUrl(fallback) ? { ...style, imageUrl: fallback } : { ...style, imageUrl: '' };
   });
 }
 
@@ -37,7 +32,7 @@ export function useStudioCatalog(initialStyles: StudioStyle[] = []) {
     let active = true;
     const apply = (rows: StudioStyle[]) => {
       if (!active) return;
-      const next = preferDurableImages(rows, seed.current);
+      const next = preferPublicImages(rows, seed.current);
       if (next.length) {
         setStyles(next);
         seed.current = next;
@@ -46,27 +41,32 @@ export function useStudioCatalog(initialStyles: StudioStyle[] = []) {
         setStyles(local.length ? local : seed.current);
       } else if (seed.current.length) {
         setStyles(seed.current);
+      } else {
+        setStyles([]);
       }
       setReady(true);
     };
-    apply(seed.current.length ? seed.current : listStudioStyles());
+    const localSnapshot = listStudioStyles();
+    apply(seed.current.length ? seed.current : allowLocalCatalog() ? localSnapshot : []);
     void (async () => {
       try {
         apply(await fetchStudioStyles());
       } catch {
-        apply(seed.current.length ? seed.current : listStudioStyles());
+        apply(seed.current.length ? seed.current : allowLocalCatalog() ? localSnapshot : []);
       }
-      if (readStudioWriteToken()) {
-        void syncLocalStylesToCloud()
-          .then(() => fetchStudioStyles())
-          .then(apply)
-          .catch(() => undefined);
+      if (readStudioWriteToken() || readStudioSession()) {
+        try {
+          await syncLocalStylesToCloud(localSnapshot);
+          if (active) apply(await fetchStudioStyles());
+        } catch {
+          /* catalog already showing the cloud copy */
+        }
       }
     })();
     const refresh = () => {
       void fetchStudioStyles()
         .then(apply)
-        .catch(() => apply(seed.current.length ? seed.current : listStudioStyles()));
+        .catch(() => apply(seed.current.length ? seed.current : allowLocalCatalog() ? listStudioStyles() : []));
     };
     window.addEventListener(STUDIO_STYLES_EVENT, refresh);
     window.addEventListener('storage', refresh);

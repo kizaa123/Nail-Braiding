@@ -109,7 +109,7 @@ export default function AdminPage() {
               recentPublished.map((style) => (
                 <div key={style.id} className="flex items-center gap-3">
                   <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[#F7F1EA]">
-                    <CatalogImage src={style.imageUrl} alt={style.name} className="object-cover" sizes="48px" />
+                    <CatalogImage src={style.imageUrl} alt="" className="object-cover" sizes="48px" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-[#171211]">{style.name}</p>

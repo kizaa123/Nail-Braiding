@@ -42,7 +42,7 @@ export function StyleDetailClient({ slug, initialStyles = [] }: { slug: string; 
       <div className="grid items-start gap-8 lg:grid-cols-12 lg:gap-10">
         <Reveal className="lg:col-span-4" direction="left">
           <div className="relative mx-auto aspect-[4/5] max-h-[320px] w-full overflow-hidden rounded-[22px] border border-ink/10 bg-cream shadow-lg sm:max-h-none sm:max-w-[300px] lg:mx-0 lg:max-w-none">
-            <CatalogImage src={style.imageUrl} alt={style.name} className="object-cover" sizes="(max-width: 1024px) 300px, 28vw" priority />
+            <CatalogImage src={style.imageUrl} alt="" className="object-cover" sizes="(max-width: 1024px) 300px, 28vw" priority />
             <div className="absolute left-3 top-3">
               <span className="glass-badge rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider">
                 {style.categoryName}

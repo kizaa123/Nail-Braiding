@@ -2,7 +2,7 @@ import { hydrateBookingImages, type StudioBooking } from '@/lib/studio-bookings'
 import type { StudioCategoryMap } from '@/lib/studio-categories';
 import { slugifyStyleName, type StyleDraft, type StudioStyle } from '@/lib/studio-styles';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
-import { persistLookImageUrl, uploadLookImage } from '@/lib/studio-images';
+import { isPublicLookImageUrl, persistLookImageUrl, uploadLookImage } from '@/lib/studio-images';
 import { ensureStudioSchema, getStudioSql } from '@/lib/studio-pg';
 
 type StyleRow = {
@@ -72,6 +72,14 @@ export function mapStyle(row: StyleRow): StudioStyle {
   };
 }
 
+function toClientStyle(style: StudioStyle): StudioStyle {
+  const imageUrl = style.imageUrl?.trim() ?? '';
+  return {
+    ...style,
+    imageUrl: isPublicLookImageUrl(imageUrl) ? imageUrl : '',
+  };
+}
+
 export function mapBooking(row: BookingRow): StudioBooking {
   return {
     id: row.id,
@@ -134,7 +142,7 @@ export async function dbGetPublicStyleBySlug(slug: string) {
       where slug = ${key} and published = true and archived = false
       limit 1
     `;
-    return rows[0] ? mapStyle(rows[0]) : null;
+    return rows[0] ? toClientStyle(mapStyle(rows[0])) : null;
   }
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
@@ -146,10 +154,55 @@ export async function dbGetPublicStyleBySlug(slug: string) {
     .eq('archived', false)
     .maybeSingle();
   if (error || !data) return null;
-  return mapStyle(data as StyleRow);
+  return toClientStyle(mapStyle(data as StyleRow));
 }
 
-export async function dbListStyles(scope: 'public' | 'all') {
+async function dbWriteStyleImage(id: string, imageUrl: string) {
+  if (getStudioSql()) {
+    const sql = await ensureStudioSchema();
+    await sql`
+      update studio_styles
+      set image_url = ${imageUrl}, updated_at = ${new Date().toISOString()}
+      where id::text = ${id}
+    `;
+    return;
+  }
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+  await supabase
+    .from('studio_styles')
+    .update({ image_url: imageUrl, updated_at: new Date().toISOString() })
+    .eq('id', id);
+}
+
+async function publishListedStyleImages(styles: StudioStyle[], persistEphemeral: boolean) {
+  const next: StudioStyle[] = [];
+  let migrated = 0;
+  for (const style of styles) {
+    const raw = style.imageUrl?.trim() ?? '';
+    if (isPublicLookImageUrl(raw)) {
+      next.push({ ...style, imageUrl: raw });
+      continue;
+    }
+    if (persistEphemeral && raw && migrated < 4) {
+      try {
+        const imageUrl = await persistLookImageUrl(raw);
+        if (imageUrl && isPublicLookImageUrl(imageUrl)) {
+          await dbWriteStyleImage(style.id, imageUrl);
+          migrated += 1;
+          next.push({ ...style, imageUrl });
+          continue;
+        }
+      } catch {
+        /* keep a blank public photo rather than a private data URL */
+      }
+    }
+    next.push({ ...style, imageUrl: '' });
+  }
+  return next;
+}
+
+export async function dbListStyles(scope: 'public' | 'all', options?: { persistImages?: boolean }) {
   if (getStudioSql()) {
     const sql = await ensureStudioSchema();
     const rows =
@@ -160,7 +213,7 @@ export async function dbListStyles(scope: 'public' | 'all') {
             order by updated_at desc
           `
         : await sql<StyleRow[]>`select * from studio_styles order by updated_at desc`;
-    return rows.map(mapStyle);
+    return publishListedStyleImages(rows.map(mapStyle), Boolean(options?.persistImages));
   }
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
@@ -168,7 +221,7 @@ export async function dbListStyles(scope: 'public' | 'all') {
   if (scope === 'public') query = query.eq('published', true).eq('archived', false);
   const { data, error } = await query;
   if (error) throw error;
-  return (data as StyleRow[]).map(mapStyle);
+  return publishListedStyleImages((data as StyleRow[]).map(mapStyle), Boolean(options?.persistImages));
 }
 
 async function currentStyleImage(id: string) {
@@ -187,10 +240,10 @@ async function currentStyleImage(id: string) {
 
 async function durableStyleImage(draft: StyleDraft & { id?: string }) {
   const imageUrl = await persistLookImageUrl(draft.imageUrl);
-  if (imageUrl.startsWith('https://') || imageUrl.startsWith('http://')) return imageUrl;
-  if (!draft.id) return imageUrl;
+  if (imageUrl && isPublicLookImageUrl(imageUrl)) return imageUrl;
+  if (!draft.id) return '';
   const existing = await currentStyleImage(draft.id);
-  return existing.startsWith('https://') || existing.startsWith('http://') ? existing : imageUrl;
+  return isPublicLookImageUrl(existing) ? existing.trim() : '';
 }
 
 export async function dbUpsertStyle(draft: StyleDraft & { id?: string }) {
@@ -221,7 +274,7 @@ export async function dbUpsertStyle(draft: StyleDraft & { id?: string }) {
         update studio_styles set ${sql(updateRow)} where id::text = ${draft.id} returning *
       `;
       if (!rows[0]) throw new Error('Look was not found.');
-      return mapStyle(rows[0]);
+      return toClientStyle(mapStyle(rows[0]));
     }
     const id = crypto.randomUUID();
     const artistIds = row.artist_ids;
@@ -239,7 +292,7 @@ export async function dbUpsertStyle(draft: StyleDraft & { id?: string }) {
       returning *
     `;
     if (!rows[0]) throw new Error('Could not save look.');
-    return mapStyle(rows[0]);
+    return toClientStyle(mapStyle(rows[0]));
   }
 
   const supabase = getSupabaseAdmin();
@@ -248,7 +301,7 @@ export async function dbUpsertStyle(draft: StyleDraft & { id?: string }) {
     const updateRow = { ...row, ...(draft.published ? { archived: false } : {}) };
     const { data, error } = await supabase.from('studio_styles').update(updateRow).eq('id', draft.id).select('*').single();
     if (error) throw error;
-    return mapStyle(data as StyleRow);
+    return toClientStyle(mapStyle(data as StyleRow));
   }
   const { data, error } = await supabase
     .from('studio_styles')
@@ -256,7 +309,7 @@ export async function dbUpsertStyle(draft: StyleDraft & { id?: string }) {
     .select('*')
     .single();
   if (error) throw error;
-  return mapStyle(data as StyleRow);
+  return toClientStyle(mapStyle(data as StyleRow));
 }
 
 export async function dbPatchStyle(id: string, patch: Partial<StudioStyle>) {
@@ -281,14 +334,14 @@ export async function dbPatchStyle(id: string, patch: Partial<StudioStyle>) {
       update studio_styles set ${sql(row)} where id::text = ${id} returning *
     `;
     if (!rows[0]) throw new Error('Look was not found.');
-    return mapStyle(rows[0]);
+    return toClientStyle(mapStyle(rows[0]));
   }
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
   const { data, error } = await supabase.from('studio_styles').update(row).eq('id', id).select('*').single();
   if (error) throw error;
-  return mapStyle(data as StyleRow);
+  return toClientStyle(mapStyle(data as StyleRow));
 }
 
 export async function dbDeleteStyle(id: string) {

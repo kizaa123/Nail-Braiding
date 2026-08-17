@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { cloudUnavailable, requireStudioAdmin, unauthorized } from '@/lib/studio-auth';
 import { studioCloudConfigured } from '@/lib/supabase-admin';
 import { dbDeleteStyle, dbPatchStyle } from '@/lib/studio-db';
 import type { StudioStyle } from '@/lib/studio-styles';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+function revalidateCatalog() {
+  revalidatePath('/');
+  revalidatePath('/styles');
+}
 
 export async function PATCH(request: Request, ctx: { params: Promise<{ id: string }> }) {
   if (!studioCloudConfigured()) return cloudUnavailable();
@@ -14,6 +21,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   if (!patch) return NextResponse.json({ error: 'Invalid update.' }, { status: 400 });
   try {
     const style = await dbPatchStyle(id, patch);
+    revalidateCatalog();
     return NextResponse.json({ style });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not update look.';
@@ -27,6 +35,7 @@ export async function DELETE(request: Request, ctx: { params: Promise<{ id: stri
   const { id } = await ctx.params;
   try {
     await dbDeleteStyle(id);
+    revalidateCatalog();
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not delete look.';
