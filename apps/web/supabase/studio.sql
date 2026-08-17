@@ -63,8 +63,13 @@ create table if not exists studio_settings (
   profile_image_url text not null default '',
   location text not null default '',
   hours text not null default '',
+  open_time text not null default '09:00',
+  close_time text not null default '17:00',
   updated_at timestamptz not null default now()
 );
+
+alter table studio_settings add column if not exists open_time text not null default '09:00';
+alter table studio_settings add column if not exists close_time text not null default '17:00';
 
 alter table studio_styles enable row level security;
 alter table studio_bookings enable row level security;

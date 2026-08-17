@@ -22,12 +22,26 @@ export const STUDIO_BOOKINGS_EVENT = 'luxe-bookings-changed';
 
 export type BookingStatus = 'WAITING' | 'APPROVED' | 'SERVED' | 'DECLINED';
 
-export const BOOKING_TIME_SLOTS = Array.from({ length: 17 }, (_, index) => {
-  const minutes = 9 * 60 + index * 30;
-  const hour = Math.floor(minutes / 60);
-  const minute = minutes % 60;
-  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-});
+export const BOOKING_TIME_SLOTS = bookingTimeSlots();
+
+export function bookingTimeSlots(openTime = '09:00', closeTime = '17:00', stepMinutes = 15) {
+  const start = clockToMinutes(openTime);
+  const end = clockToMinutes(closeTime);
+  if (end < start) return [];
+  const slots: string[] = [];
+  for (let minutes = start; minutes <= end; minutes += stepMinutes) {
+    const hour = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+    slots.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+  }
+  return slots;
+}
+
+function clockToMinutes(value: string) {
+  const [hour, minute] = value.split(':').map(Number);
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return 9 * 60;
+  return hour * 60 + minute;
+}
 
 export interface StudioBooking {
   id: string;
@@ -49,6 +63,31 @@ export interface StudioBooking {
   destination: 'PORTAL' | 'WHATSAPP';
   status: BookingStatus;
   createdAt: string;
+}
+
+export function isDurableLookImageUrl(url: string | undefined) {
+  const raw = url?.trim() ?? '';
+  if (!raw || raw.includes('/look-image/')) return false;
+  return raw.startsWith('https://') || raw.startsWith('http://') || raw.startsWith('data:') || raw.startsWith('blob:');
+}
+
+export function resolveBookingImageUrl(
+  booking: Pick<StudioBooking, 'imageUrl' | 'styleId'>,
+  styles: Array<{ id: string; imageUrl: string }> = [],
+) {
+  if (isDurableLookImageUrl(booking.imageUrl)) return booking.imageUrl;
+  const fromStyle = styles.find((style) => style.id === booking.styleId)?.imageUrl?.trim() ?? '';
+  return fromStyle || booking.imageUrl || '';
+}
+
+export function hydrateBookingImages(
+  bookings: StudioBooking[],
+  styles: Array<{ id: string; imageUrl: string }>,
+) {
+  return bookings.map((booking) => {
+    const imageUrl = resolveBookingImageUrl(booking, styles);
+    return imageUrl === booking.imageUrl ? booking : { ...booking, imageUrl };
+  });
 }
 
 export function formatBookingDuration(minutes: number) {

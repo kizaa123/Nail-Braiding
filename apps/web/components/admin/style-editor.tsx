@@ -272,19 +272,38 @@ export function StyleEditorModal({
               />
             </label>
             <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A6E68]">Duration · min</span>
-              <input
-                required
-                type="number"
-                min={15}
-                step={15}
-                value={draft.durationMinutes > 0 ? draft.durationMinutes : ''}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, durationMinutes: Number(event.target.value || 0) }))
-                }
-                placeholder="Minutes"
-                className={fieldClass}
-              />
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A6E68]">Time to finish</span>
+              <span className="mt-1.5 grid grid-cols-2 gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  value={Math.floor(draft.durationMinutes / 60) || ''}
+                  onChange={(event) => {
+                    const hours = Math.max(0, Number(event.target.value || 0));
+                    const minutes = draft.durationMinutes % 60;
+                    setDraft((current) => ({ ...current, durationMinutes: hours * 60 + minutes }));
+                  }}
+                  placeholder="Hours"
+                  className={fieldClass}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  max={59}
+                  step={1}
+                  inputMode="numeric"
+                  value={draft.durationMinutes ? draft.durationMinutes % 60 : ''}
+                  onChange={(event) => {
+                    const minutes = Math.min(59, Math.max(0, Number(event.target.value || 0)));
+                    const hours = Math.floor(draft.durationMinutes / 60);
+                    setDraft((current) => ({ ...current, durationMinutes: hours * 60 + minutes }));
+                  }}
+                  placeholder="Min"
+                  className={fieldClass}
+                />
+              </span>
             </label>
           </div>
 

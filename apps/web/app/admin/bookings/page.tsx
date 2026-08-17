@@ -3,10 +3,12 @@
 import { useMemo, useState } from 'react';
 import { CatalogImage } from '@/components/ui/catalog-image';
 import { useStudioBookings } from '@/hooks/use-studio-bookings';
+import { useStudioCatalog } from '@/hooks/use-studio-catalog';
 import {
   deleteStudioBooking,
   formatBookingWhen,
   patchStudioBooking,
+  resolveBookingImageUrl,
   type BookingStatus,
   type StudioBooking,
 } from '@/lib/studio-bookings';
@@ -37,6 +39,7 @@ function statusClass(status: BookingStatus) {
 
 export default function AdminBookingsPage() {
   const { bookings, ready } = useStudioBookings();
+  const { styles } = useStudioCatalog();
   const [filter, setFilter] = useState<Filter>('all');
 
   const counts = useMemo(
@@ -118,7 +121,7 @@ export default function AdminBookingsPage() {
             </thead>
             <tbody>
               {rows.map((booking) => (
-                <BookingRow key={booking.id} booking={booking} />
+                <BookingRow key={booking.id} booking={booking} styles={styles} />
               ))}
             </tbody>
           </table>
@@ -128,7 +131,13 @@ export default function AdminBookingsPage() {
   );
 }
 
-function BookingRow({ booking }: { booking: StudioBooking }) {
+function BookingRow({
+  booking,
+  styles,
+}: {
+  booking: StudioBooking;
+  styles: Array<{ id: string; imageUrl: string }>;
+}) {
   const { day, time } = formatBookingWhen(booking);
 
   return (
@@ -136,7 +145,7 @@ function BookingRow({ booking }: { booking: StudioBooking }) {
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-[#F7F1EA]">
-            <CatalogImage src={booking.imageUrl} alt={booking.styleName} className="object-cover" sizes="48px" />
+            <CatalogImage src={resolveBookingImageUrl(booking, styles)} alt="" className="object-cover" sizes="48px" />
           </div>
           <div className="min-w-0">
             <p className="font-medium text-[#171211]">{booking.styleName}</p>

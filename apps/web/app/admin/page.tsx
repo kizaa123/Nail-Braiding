@@ -11,6 +11,7 @@ import {
   formatBookingDuration,
   formatBookingTime,
   formatBookingWhen,
+  resolveBookingImageUrl,
   type BookingStatus,
 } from '@/lib/studio-bookings';
 
@@ -147,7 +148,7 @@ export default function AdminPage() {
                 return (
                   <div key={booking.id} className="flex items-center gap-3">
                     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[#F7F1EA]">
-                      <CatalogImage src={booking.imageUrl} alt={booking.styleName} className="object-cover" sizes="48px" />
+                      <CatalogImage src={resolveBookingImageUrl(booking, styles)} alt="" className="object-cover" sizes="48px" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-[#171211]">{booking.styleName}</p>

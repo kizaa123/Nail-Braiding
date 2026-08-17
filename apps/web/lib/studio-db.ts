@@ -1,4 +1,4 @@
-import type { StudioBooking } from '@/lib/studio-bookings';
+import { hydrateBookingImages, type StudioBooking } from '@/lib/studio-bookings';
 import type { StudioCategoryMap } from '@/lib/studio-categories';
 import { slugifyStyleName, type StyleDraft, type StudioStyle } from '@/lib/studio-styles';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
@@ -281,6 +281,19 @@ export async function dbDeleteStyle(id: string) {
   return true;
 }
 
+async function styleImageIndex() {
+  const styles = await dbListStyles('all');
+  return (styles ?? []).map((style) => ({ id: style.id, imageUrl: style.imageUrl }));
+}
+
+async function withStylePhotos(bookings: StudioBooking[]) {
+  try {
+    return hydrateBookingImages(bookings, await styleImageIndex());
+  } catch {
+    return bookings;
+  }
+}
+
 export async function dbListBookings() {
   if (getStudioSql()) {
     const sql = await ensureStudioSchema();
@@ -288,7 +301,7 @@ export async function dbListBookings() {
       select * from studio_bookings
       order by created_at desc
     `;
-    return rows.map(mapBooking);
+    return withStylePhotos(rows.map(mapBooking));
   }
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
@@ -297,7 +310,7 @@ export async function dbListBookings() {
     .select('*')
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data as BookingRow[]).map(mapBooking);
+  return withStylePhotos((data as BookingRow[]).map(mapBooking));
 }
 
 export async function dbCreateBooking(booking: StudioBooking) {
@@ -440,6 +453,8 @@ type SettingsRow = {
   profile_image_url: string;
   location: string;
   hours: string;
+  open_time?: string;
+  close_time?: string;
   updated_at: string | Date;
 };
 
@@ -453,6 +468,8 @@ const SETTINGS_TABLE = `create table if not exists studio_settings (
   profile_image_url text not null default '',
   location text not null default '',
   hours text not null default '',
+  open_time text not null default '09:00',
+  close_time text not null default '17:00',
   updated_at timestamptz not null default now()
 )`;
 
@@ -466,6 +483,8 @@ function mapSettings(row: SettingsRow) {
     profileImageUrl: row.profile_image_url ?? '',
     location: row.location ?? '',
     hours: row.hours ?? '',
+    openTime: row.open_time ?? '09:00',
+    closeTime: row.close_time ?? '17:00',
   };
 }
 
@@ -487,6 +506,8 @@ export async function dbGetStudioSettings() {
     profileImageUrl: '',
     location: 'Cape Coast, UCC Campus',
     hours: 'Monday – Sunday · 9:00 AM – 5:00 PM',
+    openTime: '09:00',
+    closeTime: '17:00',
   };
   if (getStudioSql()) {
     await ensureSettingsTable();
@@ -511,6 +532,8 @@ export async function dbSaveStudioSettings(input: {
   profileImageUrl: string;
   location: string;
   hours: string;
+  openTime: string;
+  closeTime: string;
 }) {
   const current = await dbGetStudioSettings();
   const row = {
@@ -523,6 +546,8 @@ export async function dbSaveStudioSettings(input: {
     profile_image_url: input.profileImageUrl,
     location: input.location,
     hours: input.hours,
+    open_time: input.openTime,
+    close_time: input.closeTime,
     updated_at: new Date().toISOString(),
   };
   if (getStudioSql()) {
@@ -539,6 +564,8 @@ export async function dbSaveStudioSettings(input: {
         profile_image_url = excluded.profile_image_url,
         location = excluded.location,
         hours = excluded.hours,
+        open_time = excluded.open_time,
+        close_time = excluded.close_time,
         updated_at = excluded.updated_at
       returning *
     `;

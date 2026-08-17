@@ -7,7 +7,14 @@ import {
   unauthorized,
 } from '@/lib/studio-auth';
 import { dbGetStudioSettings, dbSaveStudioSettings } from '@/lib/studio-db';
-import { normalizeStudioProfile, toWhatsAppDigits } from '@/lib/studio-profile';
+import {
+  formatStudioHours,
+  normalizeClock,
+  normalizeStudioProfile,
+  toWhatsAppDigits,
+  DEFAULT_CLOSE_TIME,
+  DEFAULT_OPEN_TIME,
+} from '@/lib/studio-profile';
 import { studioCloudConfigured } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
@@ -39,6 +46,8 @@ export async function PATCH(request: Request) {
     displayPhone?: string;
     location?: string;
     hours?: string;
+    openTime?: string;
+    closeTime?: string;
     profileImageUrl?: string;
     currentPassword?: string;
     newPassword?: string;
@@ -47,13 +56,17 @@ export async function PATCH(request: Request) {
 
   try {
     const current = await dbGetStudioSettings();
+    const openTime = normalizeClock(body.openTime, current.openTime || DEFAULT_OPEN_TIME);
+    const closeTime = normalizeClock(body.closeTime, current.closeTime || DEFAULT_CLOSE_TIME);
     const next = normalizeStudioProfile({
       ...current,
       ownerName: body.ownerName,
       email: body.email,
       displayPhone: body.displayPhone,
       location: body.location,
-      hours: body.hours,
+      openTime,
+      closeTime,
+      hours: formatStudioHours(openTime, closeTime),
       profileImageUrl: body.profileImageUrl,
     });
     next.whatsappPhone = toWhatsAppDigits(next.displayPhone);

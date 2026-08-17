@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import { formatCedis } from '@/lib/api';
 import { CatalogImage } from '@/components/ui/catalog-image';
 import {
-  BOOKING_TIME_SLOTS,
   DISPLAY_PHONE,
   STUDIO_NAME,
+  bookingTimeSlots,
   createStudioBooking,
   formatBookingDate,
   formatBookingTime,
@@ -88,6 +88,10 @@ export function BookingModal({
   const [mounted, setMounted] = useState(false);
   const minDate = useMemo(() => todayValue(), []);
   const { profile } = useStudioProfile();
+  const timeSlots = useMemo(
+    () => bookingTimeSlots(profile.openTime, profile.closeTime, 15),
+    [profile.openTime, profile.closeTime],
+  );
   const router = useRouter();
 
   useEffect(() => {
@@ -319,7 +323,7 @@ export function BookingModal({
                   className="mt-1 min-h-11 w-full rounded-2xl border border-[#EADBCE] bg-white px-3 text-sm text-[#171211] outline-none focus:border-[#D98282]"
                 >
                   <option value="">Select time</option>
-                  {BOOKING_TIME_SLOTS.map((slot) => (
+                  {timeSlots.map((slot) => (
                     <option key={slot} value={slot}>
                       {formatBookingTime(slot)}
                     </option>

@@ -1,33 +1,38 @@
-import Image from 'next/image';
+'use client';
+
+import { useEffect, useState } from 'react';
 
 export function CatalogImage({
   src,
-  alt,
+  alt = '',
   className,
-  sizes,
   fill = true,
-  priority = false,
 }: {
   src: string;
-  alt: string;
+  alt?: string;
   className?: string;
   sizes?: string;
   fill?: boolean;
   priority?: boolean;
 }) {
-  if (!src) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  if (!src || failed) {
     return <div className={fill ? `absolute inset-0 bg-[#EDE4D8] ${className ?? ''}` : `bg-[#EDE4D8] ${className ?? ''}`} />;
   }
 
-  if (src.startsWith('data:') || src.startsWith('blob:') || src.startsWith('http://') || src.startsWith('https://')) {
-    return (
-      // Uploaded catalog photos may be data URLs or hosted Supabase files.
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt={alt} className={fill ? `absolute inset-0 h-full w-full object-cover ${className ?? ''}` : className} />
-    );
-  }
-
   return (
-    <Image src={src} alt={alt} fill={fill} priority={priority} sizes={sizes} className={className} />
+    // Uploaded catalog photos may be data URLs, Cloudinary files, or local look paths.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      className={fill ? `absolute inset-0 h-full w-full object-cover ${className ?? ''}` : className}
+      onError={() => setFailed(true)}
+    />
   );
 }

@@ -60,8 +60,15 @@ const SCHEMA_STATEMENTS = [
     profile_image_url text not null default '',
     location text not null default '',
     hours text not null default '',
+    open_time text not null default '09:00',
+    close_time text not null default '17:00',
     updated_at timestamptz not null default now()
   )`,
+];
+
+const SCHEMA_MIGRATIONS = [
+  `alter table studio_settings add column if not exists open_time text not null default '09:00'`,
+  `alter table studio_settings add column if not exists close_time text not null default '17:00'`,
 ];
 
 let client: postgres.Sql | null | undefined;
@@ -155,6 +162,9 @@ export async function ensureStudioSchema() {
   if (schemaReady) return sql;
   try {
     await withTimeout(sql`select 1 from studio_styles limit 1`, 8000, 'Catalog lookup');
+    for (const statement of SCHEMA_MIGRATIONS) {
+      await withTimeout(sql.unsafe(statement), 8000, 'Catalog migrate');
+    }
     schemaReady = true;
     return sql;
   } catch {
