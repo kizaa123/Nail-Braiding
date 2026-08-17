@@ -33,11 +33,6 @@ export async function persistLookImageUrl(imageUrl: string | undefined) {
 
   return raw;
 }
-  if (studioCloudinaryConfigured()) {
-    return uploadToCloudinary(bytes);
-  }
-  return uploadToSupabase(bytes, contentType);
-}
 
 async function uploadToCloudinary(bytes: Buffer) {
   cloudinary.config({
