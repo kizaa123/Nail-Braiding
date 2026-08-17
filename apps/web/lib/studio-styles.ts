@@ -95,7 +95,19 @@ export function listPublicStyles(): StudioStyle[] {
 
 export function saveStudioStyles(styles: StudioStyle[]) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STUDIO_STYLES_KEY, JSON.stringify(styles));
+  try {
+    window.localStorage.setItem(STUDIO_STYLES_KEY, JSON.stringify(styles));
+  } catch {
+    try {
+      const compact = styles.map((style) => ({
+        ...style,
+        imageUrl: style.imageUrl.startsWith('data:') ? '' : style.imageUrl,
+      }));
+      window.localStorage.setItem(STUDIO_STYLES_KEY, JSON.stringify(compact));
+    } catch {
+      /* ignore quota */
+    }
+  }
   notify();
 }
 
@@ -226,13 +238,6 @@ export async function fileToStyleImage(file: File) {
       timeoutMs: 45000,
     });
   }
-  if (!result.ok) {
-    result = await studioRequest<{ url?: string; error?: string; cloud?: boolean }>('/api/studio/share-look', {
-      method: 'POST',
-      body: form,
-      timeoutMs: 45000,
-    });
-  }
   if (result.ok && result.data?.url) return result.data.url;
   if (cloudMissing(result.status, result.data) && allowLocalCatalog()) {
     return new Promise<string>((resolve, reject) => {
@@ -298,7 +303,7 @@ export async function syncLocalStylesToCloud() {
       if (!file) continue;
       const form = new FormData();
       form.append('file', file, file.name);
-      const uploaded = await studioRequest<{ url?: string }>('/api/studio/share-look', { method: 'POST', body: form });
+      const uploaded = await studioRequest<{ url?: string }>('/api/studio/upload', { method: 'POST', body: form });
       if (!uploaded.ok || !uploaded.data?.url) continue;
       imageUrl = uploaded.data.url;
     }

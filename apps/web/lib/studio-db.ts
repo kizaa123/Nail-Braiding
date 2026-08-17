@@ -2,7 +2,7 @@ import { hydrateBookingImages, type StudioBooking } from '@/lib/studio-bookings'
 import type { StudioCategoryMap } from '@/lib/studio-categories';
 import { slugifyStyleName, type StyleDraft, type StudioStyle } from '@/lib/studio-styles';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
-import { uploadLookImage } from '@/lib/studio-images';
+import { persistLookImageUrl, uploadLookImage } from '@/lib/studio-images';
 import { ensureStudioSchema, getStudioSql } from '@/lib/studio-pg';
 
 type StyleRow = {
@@ -171,16 +171,39 @@ export async function dbListStyles(scope: 'public' | 'all') {
   return (data as StyleRow[]).map(mapStyle);
 }
 
+async function currentStyleImage(id: string) {
+  if (getStudioSql()) {
+    const sql = await ensureStudioSchema();
+    const rows = await sql<{ image_url: string }[]>`
+      select image_url from studio_styles where id::text = ${id} limit 1
+    `;
+    return rows[0]?.image_url ?? '';
+  }
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return '';
+  const { data } = await supabase.from('studio_styles').select('image_url').eq('id', id).maybeSingle();
+  return (data as { image_url?: string } | null)?.image_url ?? '';
+}
+
+async function durableStyleImage(draft: StyleDraft & { id?: string }) {
+  const imageUrl = await persistLookImageUrl(draft.imageUrl);
+  if (imageUrl.startsWith('https://') || imageUrl.startsWith('http://')) return imageUrl;
+  if (!draft.id) return imageUrl;
+  const existing = await currentStyleImage(draft.id);
+  return existing.startsWith('https://') || existing.startsWith('http://') ? existing : imageUrl;
+}
+
 export async function dbUpsertStyle(draft: StyleDraft & { id?: string }) {
   const now = new Date().toISOString();
   const slug = await uniqueSlug(draft.name, draft.id);
+  const imageUrl = await durableStyleImage(draft);
   const row = {
     name: draft.name.trim(),
     slug,
     kind: draft.kind,
     category_name: draft.categoryName.trim(),
     description: draft.description.trim(),
-    image_url: draft.imageUrl,
+    image_url: imageUrl,
     starting_price_minor: draft.startingPriceMinor,
     duration_minutes: draft.durationMinutes,
     location: draft.location.trim() || 'Cape Coast, UCC Campus',
@@ -242,7 +265,7 @@ export async function dbPatchStyle(id: string, patch: Partial<StudioStyle>) {
   if (patch.kind !== undefined) row.kind = patch.kind;
   if (patch.categoryName !== undefined) row.category_name = patch.categoryName;
   if (patch.description !== undefined) row.description = patch.description;
-  if (patch.imageUrl !== undefined) row.image_url = patch.imageUrl;
+  if (patch.imageUrl !== undefined) row.image_url = await persistLookImageUrl(patch.imageUrl);
   if (patch.startingPriceMinor !== undefined) row.starting_price_minor = patch.startingPriceMinor;
   if (patch.durationMinutes !== undefined) row.duration_minutes = patch.durationMinutes;
   if (patch.location !== undefined) row.location = patch.location;

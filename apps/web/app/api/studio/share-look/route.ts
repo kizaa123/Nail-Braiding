@@ -22,9 +22,11 @@ export async function POST(request: Request) {
     try {
       const url = await dbUploadLook(bytes, type);
       if (url) return NextResponse.json({ url });
-    } catch {
-      /* fall through to local image host */
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not upload photo.';
+      return NextResponse.json({ error: message }, { status: 500 });
     }
+    return NextResponse.json({ error: 'Could not upload photo.' }, { status: 500 });
   }
 
   const id = saveLookImageFromBytes(bytes, type);

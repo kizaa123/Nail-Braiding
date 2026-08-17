@@ -1,7 +1,38 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { getSupabaseAdmin, studioCloudinaryConfigured } from '@/lib/supabase-admin';
+import { getLookImage } from '@/lib/look-image-store';
 
 export async function uploadLookImage(bytes: Buffer, contentType: string) {
+  if (studioCloudinaryConfigured()) {
+    return uploadToCloudinary(bytes);
+  }
+  return uploadToSupabase(bytes, contentType);
+}
+
+export async function persistLookImageUrl(imageUrl: string | undefined) {
+  const raw = imageUrl?.trim() ?? '';
+  if (!raw) return '';
+  if (raw.startsWith('https://') || raw.startsWith('http://')) return raw;
+
+  if (raw.startsWith('data:image/')) {
+    const match = raw.match(/^data:(image\/[\w.+-]+);base64,([A-Za-z0-9+/=\s]+)$/);
+    if (!match) return raw;
+    const bytes = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
+    const uploaded = await uploadLookImage(bytes, match[1]);
+    return uploaded || raw;
+  }
+
+  const lookId = raw.includes('/look-image/') ? raw.split('/look-image/')[1]?.split(/[/?#]/)[0] : '';
+  if (lookId) {
+    const stored = getLookImage(lookId);
+    if (stored) {
+      const uploaded = await uploadLookImage(stored.bytes, stored.type);
+      if (uploaded) return uploaded;
+    }
+  }
+
+  return raw;
+}
   if (studioCloudinaryConfigured()) {
     return uploadToCloudinary(bytes);
   }

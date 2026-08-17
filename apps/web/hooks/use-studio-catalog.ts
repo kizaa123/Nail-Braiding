@@ -11,6 +11,22 @@ import {
 } from '@/lib/studio-styles';
 import { readStudioWriteToken } from '@/lib/studio-session';
 
+function isDurableImageUrl(url: string | undefined) {
+  const raw = url?.trim() ?? '';
+  if (!raw || raw.includes('/look-image/')) return false;
+  return raw.startsWith('https://') || raw.startsWith('http://') || raw.startsWith('data:');
+}
+
+function preferDurableImages(remote: StudioStyle[], seed: StudioStyle[]) {
+  if (!remote.length) return seed;
+  const seedById = new Map(seed.map((style) => [style.id, style]));
+  return remote.map((style) => {
+    if (isDurableImageUrl(style.imageUrl)) return style;
+    const fallback = seedById.get(style.id)?.imageUrl ?? '';
+    return isDurableImageUrl(fallback) ? { ...style, imageUrl: fallback } : style;
+  });
+}
+
 export function useStudioCatalog(initialStyles: StudioStyle[] = []) {
   const seed = useRef(initialStyles);
   if (initialStyles.length) seed.current = initialStyles;
@@ -21,12 +37,14 @@ export function useStudioCatalog(initialStyles: StudioStyle[] = []) {
     let active = true;
     const apply = (rows: StudioStyle[]) => {
       if (!active) return;
-      if (rows.length) {
-        setStyles(rows);
+      const next = preferDurableImages(rows, seed.current);
+      if (next.length) {
+        setStyles(next);
+        seed.current = next;
       } else if (allowLocalCatalog()) {
         const local = listStudioStyles();
         setStyles(local.length ? local : seed.current);
-      } else {
+      } else if (seed.current.length) {
         setStyles(seed.current);
       }
       setReady(true);
@@ -36,7 +54,7 @@ export function useStudioCatalog(initialStyles: StudioStyle[] = []) {
       try {
         apply(await fetchStudioStyles());
       } catch {
-        apply(listStudioStyles());
+        apply(seed.current.length ? seed.current : listStudioStyles());
       }
       if (readStudioWriteToken()) {
         void syncLocalStylesToCloud()
@@ -46,9 +64,9 @@ export function useStudioCatalog(initialStyles: StudioStyle[] = []) {
       }
     })();
     const refresh = () => {
-      const local = listStudioStyles();
-      if (local.length) apply(local);
-      void fetchStudioStyles().then(apply).catch(() => apply(local));
+      void fetchStudioStyles()
+        .then(apply)
+        .catch(() => apply(seed.current.length ? seed.current : listStudioStyles()));
     };
     window.addEventListener(STUDIO_STYLES_EVENT, refresh);
     window.addEventListener('storage', refresh);
