@@ -51,6 +51,9 @@ export const metadata: Metadata = {
     images: ['/kas-beauty-plus-logo.png'],
   },
   robots: { index: true, follow: true },
+  verification: {
+    google: 'zkuP7wHzgdC4pCNBAWWJ4AuXZKkpYIvRkLaViOnSuHg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
