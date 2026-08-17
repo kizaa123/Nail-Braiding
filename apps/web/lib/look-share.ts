@@ -49,6 +49,8 @@ export function publicLookImageUrl(imageUrl: string | undefined, origin: string)
   return '';
 }
 
+export const PUBLIC_SITE_URL = 'https://kasbeautyplus.vercel.app';
+
 export async function requestOrigin() {
   const { headers } = await import('next/headers');
   const headerList = await headers();
@@ -58,16 +60,13 @@ export async function requestOrigin() {
     ?.trim();
   const env = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '');
   if (env && !/localhost|127\.0\.0\.1/i.test(env)) return env;
-  if (host) return `${proto}://${host}`;
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return env || 'http://localhost:3000';
+  if (host && !/localhost|127\.0\.0\.1/i.test(host)) return `${proto}://${host}`;
+  return PUBLIC_SITE_URL;
 }
 
 export function siteOrigin() {
   const env = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '');
   if (env && !/localhost|127\.0\.0\.1/i.test(env)) return env;
-  const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
-  if (vercelHost) return `https://${vercelHost.replace(/^https?:\/\//, '')}`;
+  if (process.env.VERCEL) return PUBLIC_SITE_URL;
   return 'http://localhost:3000';
 }

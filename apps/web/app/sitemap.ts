@@ -1,10 +1,10 @@
 import type { MetadataRoute } from 'next';
-import { siteOrigin } from '@/lib/look-share';
+import { PUBLIC_SITE_URL } from '@/lib/look-share';
 
 export const dynamic = 'force-dynamic';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const site = siteOrigin();
+  const site = PUBLIC_SITE_URL;
   const paths = ['', '/styles', '/about', '/contact'];
   return paths.map((path) => ({
     url: `${site}${path}`,
