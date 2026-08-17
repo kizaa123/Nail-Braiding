@@ -4,7 +4,7 @@ import { getLookImage } from '@/lib/look-image-store';
 
 export async function uploadLookImage(bytes: Buffer, contentType: string) {
   if (studioCloudinaryConfigured()) {
-    return uploadToCloudinary(bytes);
+    return uploadToCloudinary(bytes, contentType);
   }
   return uploadToSupabase(bytes, contentType);
 }
@@ -34,26 +34,23 @@ export async function persistLookImageUrl(imageUrl: string | undefined) {
   return raw;
 }
 
-async function uploadToCloudinary(bytes: Buffer) {
+async function uploadToCloudinary(bytes: Buffer, contentType: string) {
+  const cloudName = (process.env.CLOUDINARY_CLOUD_NAME || '')
+    .trim()
+    .replace(/^https?:\/\//i, '')
+    .split('/')[0];
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: cloudName,
+    api_key: process.env.CLOUDINARY_API_KEY?.trim(),
+    api_secret: process.env.CLOUDINARY_API_SECRET?.trim(),
     secure: true,
   });
-  const uploaded = await new Promise<{ secure_url?: string }>((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: 'kas-beauty-plus/looks',
-        resource_type: 'image',
-        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-      },
-      (error, result) => {
-        if (error || !result) reject(error ?? new Error('Cloudinary upload failed.'));
-        else resolve(result);
-      },
-    );
-    stream.end(bytes);
+  const mime = contentType.startsWith('image/') ? contentType : 'image/jpeg';
+  const uploaded = await cloudinary.uploader.upload(`data:${mime};base64,${bytes.toString('base64')}`, {
+    folder: 'kas-looks',
+    public_id: `look_${Date.now()}`,
+    resource_type: 'image',
+    overwrite: false,
   });
   if (!uploaded.secure_url) throw new Error('Cloudinary did not return a photo URL.');
   return uploaded.secure_url;
@@ -63,9 +60,9 @@ async function uploadToSupabase(bytes: Buffer, contentType: string) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
   const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
-  const path = `${crypto.randomUUID()}.${ext}`;
+  const path = `looks/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from('studio-looks').upload(path, bytes, {
-    contentType,
+    contentType: contentType.startsWith('image/') ? contentType : 'image/jpeg',
     upsert: false,
   });
   if (error) throw error;

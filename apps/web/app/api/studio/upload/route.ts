@@ -19,13 +19,14 @@ export async function POST(request: Request) {
   }
   try {
     const bytes = Buffer.from(await file.arrayBuffer());
+    const type = file.type?.startsWith('image/') ? file.type : 'image/jpeg';
     if (!studioImageConfigured()) {
       return NextResponse.json(
         { error: 'Photo storage is not configured. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET on Vercel.' },
         { status: 503 },
       );
     }
-    const url = await dbUploadLook(bytes, file.type || 'image/jpeg');
+    const url = await dbUploadLook(bytes, type);
     if (!url) {
       return NextResponse.json({ error: 'Could not upload photo.' }, { status: 500 });
     }

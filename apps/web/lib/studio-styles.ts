@@ -215,17 +215,20 @@ async function compressStyleFile(file: File) {
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((value) => (value ? resolve(value) : reject(new Error('Could not compress image'))), 'image/jpeg', 0.82);
     });
-    return blob;
+    return new File([blob], 'look.jpg', { type: 'image/jpeg' });
   } catch {
-    return file;
+    if (/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) {
+      return new File([file], 'look.jpg', { type: file.type === 'image/png' ? 'image/png' : 'image/jpeg' });
+    }
+    throw new Error('Could not read that photo. Try a JPG or PNG.');
   }
 }
 
 export async function fileToStyleImage(file: File) {
-  const blob = await compressStyleFile(file);
+  const jpeg = await compressStyleFile(file);
   const { studioRequest, cloudMissing, requestError } = await import('@/lib/studio-http');
   const form = new FormData();
-  form.append('file', blob, `${file.name ? file.name.replace(/\.[^.]+$/, '') : 'look'}.jpg`);
+  form.append('file', jpeg, 'look.jpg');
   let result = await studioRequest<{ url?: string; error?: string; cloud?: boolean }>('/api/studio/upload', {
     method: 'POST',
     body: form,
@@ -244,7 +247,7 @@ export async function fileToStyleImage(file: File) {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ''));
       reader.onerror = () => reject(new Error('Could not read image'));
-      reader.readAsDataURL(blob);
+      reader.readAsDataURL(jpeg);
     });
   }
   throw new Error(requestError(result, 'Could not upload that photo. Sign in again and retry.'));
