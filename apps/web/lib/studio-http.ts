@@ -9,10 +9,14 @@ function timeoutSignal(ms: number) {
   return controller.signal;
 }
 
-export async function studioRequest<T>(path: string, init: RequestInit = {}) {
-  const isForm = typeof FormData !== 'undefined' && init.body instanceof FormData;
-  const headers = new Headers(init.headers);
-  if (!isForm && init.body && !headers.has('Content-Type')) {
+export async function studioRequest<T>(
+  path: string,
+  init: RequestInit & { timeoutMs?: number } = {},
+) {
+  const { timeoutMs = 20000, signal, ...rest } = init;
+  const isForm = typeof FormData !== 'undefined' && rest.body instanceof FormData;
+  const headers = new Headers(rest.headers);
+  if (!isForm && rest.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
   const token = readStudioWriteToken();
@@ -21,11 +25,11 @@ export async function studioRequest<T>(path: string, init: RequestInit = {}) {
   }
   try {
     const response = await fetch(path, {
-      ...init,
+      ...rest,
       headers,
       credentials: 'include',
       cache: 'no-store',
-      signal: init.signal ?? timeoutSignal(15000),
+      signal: signal ?? timeoutSignal(timeoutMs),
     });
     const data = (await response.json().catch(() => null)) as T | null;
     return { ok: response.ok, status: response.status, data };
@@ -36,8 +40,16 @@ export async function studioRequest<T>(path: string, init: RequestInit = {}) {
 
 export function cloudMissing(status: number, data?: unknown) {
   return (
-    status === 0 ||
-    (status === 503 &&
-      Boolean(data && typeof data === 'object' && 'cloud' in data && (data as { cloud?: boolean }).cloud === false))
+    status === 503 &&
+    Boolean(data && typeof data === 'object' && 'cloud' in data && (data as { cloud?: boolean }).cloud === false)
   );
+}
+
+export function requestError(
+  result: { status: number; data?: { error?: string } | null },
+  fallback: string,
+) {
+  if (result.status === 401) return 'Sign in again, then save the look.';
+  if (result.status === 0) return 'The request timed out. Check your connection and try again.';
+  return result.data?.error || fallback;
 }

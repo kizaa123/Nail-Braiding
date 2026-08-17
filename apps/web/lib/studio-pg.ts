@@ -70,6 +70,10 @@ async function withTimeout<T>(work: Promise<T>, ms: number, label: string) {
         timer = setTimeout(() => reject(new Error(`${label} timed out.`)), ms);
       }),
     ]);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('timed out')) void resetStudioSql();
+    throw error;
   } finally {
     if (timer) clearTimeout(timer);
   }

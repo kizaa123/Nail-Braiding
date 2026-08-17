@@ -75,8 +75,7 @@ export default function LoginPage() {
 
                 const local = signInStudioOwner(email, password);
                 if (local) {
-                  router.push(pathForRole(local.role));
-                  router.refresh();
+                  setError('Could not start a save session. Check your connection, then sign in again.');
                   return;
                 }
 

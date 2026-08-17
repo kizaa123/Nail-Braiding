@@ -6,6 +6,7 @@ import { sanitizeDbError } from '@/lib/studio-pg';
 import type { StyleDraft } from '@/lib/studio-styles';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 export async function GET(request: Request) {
   if (!studioCloudConfigured()) return cloudUnavailable();
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
   }
   try {
     const style = await dbUpsertStyle(draft);
+    if (!style) throw new Error('Could not save look.');
     return NextResponse.json({ style });
   } catch (error) {
     const message = sanitizeDbError(error) || 'Could not save look.';

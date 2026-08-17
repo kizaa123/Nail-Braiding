@@ -211,33 +211,38 @@ async function compressStyleFile(file: File) {
 
 export async function fileToStyleImage(file: File) {
   const blob = await compressStyleFile(file);
-  const { studioRequest, cloudMissing } = await import('@/lib/studio-http');
+  const { studioRequest, cloudMissing, requestError } = await import('@/lib/studio-http');
   const form = new FormData();
   form.append('file', blob, `${file.name ? file.name.replace(/\.[^.]+$/, '') : 'look'}.jpg`);
   let result = await studioRequest<{ url?: string; error?: string; cloud?: boolean }>('/api/studio/upload', {
     method: 'POST',
     body: form,
+    timeoutMs: 45000,
   });
+  if (!result.ok) {
+    result = await studioRequest<{ url?: string; error?: string; cloud?: boolean }>('/api/studio/upload', {
+      method: 'POST',
+      body: form,
+      timeoutMs: 45000,
+    });
+  }
   if (!result.ok) {
     result = await studioRequest<{ url?: string; error?: string; cloud?: boolean }>('/api/studio/share-look', {
       method: 'POST',
       body: form,
+      timeoutMs: 45000,
     });
   }
   if (result.ok && result.data?.url) return result.data.url;
-  const health = await studioRequest<{ cloud?: boolean }>('/api/studio/health');
-  if (health.data?.cloud) {
-    throw new Error(result.data?.error || 'Could not upload photo for all customers. Sign in again and retry.');
+  if (cloudMissing(result.status, result.data) && allowLocalCatalog()) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Could not read image'));
+      reader.readAsDataURL(blob);
+    });
   }
-  if (!cloudMissing(result.status, result.data) || !allowLocalCatalog()) {
-    throw new Error(result.data?.error || CLOUD_REQUIRED_MESSAGE);
-  }
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Could not read image'));
-    reader.readAsDataURL(blob);
-  });
+  throw new Error(requestError(result, 'Could not upload that photo. Sign in again and retry.'));
 }
 
 function mergeStyle(style: StudioStyle) {
@@ -320,11 +325,19 @@ export async function syncLocalStylesToCloud() {
 }
 
 export async function upsertStudioStyle(draft: StyleDraft) {
-  const { studioRequest, cloudMissing } = await import('@/lib/studio-http');
-  const result = await studioRequest<{ style?: StudioStyle; error?: string; cloud?: boolean }>('/api/studio/styles', {
+  const { studioRequest, cloudMissing, requestError } = await import('@/lib/studio-http');
+  let result = await studioRequest<{ style?: StudioStyle; error?: string; cloud?: boolean }>('/api/studio/styles', {
     method: 'POST',
     body: JSON.stringify(draft),
+    timeoutMs: 30000,
   });
+  if (!result.ok && result.status === 0) {
+    result = await studioRequest<{ style?: StudioStyle; error?: string; cloud?: boolean }>('/api/studio/styles', {
+      method: 'POST',
+      body: JSON.stringify(draft),
+      timeoutMs: 30000,
+    });
+  }
   if (result.ok && result.data?.style) {
     mergeStyle(result.data.style);
     return result.data.style;
@@ -332,14 +345,15 @@ export async function upsertStudioStyle(draft: StyleDraft) {
   if (cloudMissing(result.status, result.data) && allowLocalCatalog()) {
     return upsertStudioStyleLocal(draft);
   }
-  throw new Error(result.data?.error || CLOUD_REQUIRED_MESSAGE);
+  throw new Error(requestError(result, 'Could not save this look. Sign in again and try once more.'));
 }
 
 export async function patchStudioStyle(id: string, patch: Partial<StudioStyle>) {
-  const { studioRequest, cloudMissing } = await import('@/lib/studio-http');
+  const { studioRequest, cloudMissing, requestError } = await import('@/lib/studio-http');
   const result = await studioRequest<{ style?: StudioStyle; error?: string; cloud?: boolean }>(`/api/studio/styles/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(patch),
+    timeoutMs: 30000,
   });
   if (result.ok && result.data?.style) {
     mergeStyle(result.data.style);
@@ -349,7 +363,7 @@ export async function patchStudioStyle(id: string, patch: Partial<StudioStyle>) 
     patchStudioStyleLocal(id, patch);
     return;
   }
-  throw new Error(result.data?.error || CLOUD_REQUIRED_MESSAGE);
+  throw new Error(requestError(result, 'Could not update this look. Sign in again and try once more.'));
 }
 
 export async function archiveStudioStyle(id: string) {

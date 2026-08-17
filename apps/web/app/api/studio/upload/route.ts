@@ -4,6 +4,7 @@ import { studioCloudConfigured, studioImageConfigured } from '@/lib/supabase-adm
 import { dbUploadLook } from '@/lib/studio-db';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 export async function POST(request: Request) {
   if (!studioCloudConfigured()) return cloudUnavailable();

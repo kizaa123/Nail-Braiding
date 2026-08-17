@@ -109,6 +109,7 @@ async function uniqueSlug(name: string, ignoreId?: string) {
       if (!rows.length) return slug;
       slug = `${base}-${n}`;
       n += 1;
+      if (n > 40) return `${base}-${Date.now()}`;
     }
   }
   const supabase = getSupabaseAdmin();
@@ -174,9 +175,22 @@ export async function dbUpsertStyle(draft: StyleDraft & { id?: string }) {
       if (!rows[0]) throw new Error('Look was not found.');
       return mapStyle(rows[0]);
     }
+    const id = crypto.randomUUID();
+    const artistIds = row.artist_ids;
+    const emptyTags: string[] = [];
     const rows = await sql<StyleRow[]>`
-      insert into studio_styles ${sql({ id: crypto.randomUUID(), ...row, archived: false, tags: [] })} returning *
+      insert into studio_styles (
+        id, name, slug, kind, category_name, description, image_url,
+        starting_price_minor, duration_minutes, location, artist_ids, tags,
+        featured, published, archived, updated_at
+      ) values (
+        ${id}, ${row.name}, ${row.slug}, ${row.kind}, ${row.category_name}, ${row.description}, ${row.image_url},
+        ${row.starting_price_minor}, ${row.duration_minutes}, ${row.location}, ${artistIds}, ${emptyTags},
+        ${row.featured}, ${row.published}, false, ${row.updated_at}
+      )
+      returning *
     `;
+    if (!rows[0]) throw new Error('Could not save look.');
     return mapStyle(rows[0]);
   }
 
