@@ -7,7 +7,6 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/section';
 import {
-  STUDIO_OWNER_HINT,
   pathForRole,
   saveStudioSession,
   saveStudioWriteToken,
@@ -112,8 +111,7 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 required
-                defaultValue={STUDIO_OWNER_HINT.email}
-                placeholder={STUDIO_OWNER_HINT.email}
+                placeholder="Studio owner email"
                 className="mt-2 min-h-13 w-full rounded-2xl border border-ink/10 bg-ivory px-4 text-sm text-ink placeholder:text-muted transition-all focus:border-champagne focus:bg-paper focus:outline-none"
               />
             </div>
@@ -126,7 +124,6 @@ export default function LoginPage() {
                 name="password"
                 type="password"
                 required
-                defaultValue={STUDIO_OWNER_HINT.password}
                 placeholder="Studio password"
                 className="mt-2 min-h-13 w-full rounded-2xl border border-ink/10 bg-ivory px-4 text-sm text-ink placeholder:text-muted transition-all focus:border-champagne focus:bg-paper focus:outline-none"
               />
@@ -142,13 +139,6 @@ export default function LoginPage() {
               {pending ? 'Signing in…' : 'Sign in to studio'}
             </Button>
           </form>
-
-          <p className="mt-6 rounded-2xl border border-[#EADBCE] bg-ivory px-4 py-3 text-center text-[11px] leading-relaxed text-[#7A6E68]">
-            Studio owner login works without the booking API.
-            <span className="mt-1 block font-medium text-ink">
-              {STUDIO_OWNER_HINT.email} · {STUDIO_OWNER_HINT.password}
-            </span>
-          </p>
 
           <div className="mt-6 border-t border-ink/8 pt-6 text-center text-xs text-muted">
             Customers book as guests — no account required.{' '}

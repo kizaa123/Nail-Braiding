@@ -2,14 +2,16 @@
 
 import { useState } from 'react';
 import { Container } from '@/components/ui/section';
-import { DISPLAY_PHONE, WHATSAPP_PHONE } from '@/lib/studio-bookings';
+import { useStudioProfile } from '@/hooks/use-studio-profile';
+import { STUDIO_NAME } from '@/lib/studio-bookings';
 
 export default function ContactPage() {
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
+  const { profile } = useStudioProfile();
 
-  const whatsappHref = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(
-    [`Hello LUXÉ Beauty Studio`, name ? `My name is ${name}.` : '', message || 'I would like to get in touch about a booking.'].filter(Boolean).join('\n'),
+  const whatsappHref = `https://wa.me/${profile.whatsappPhone}?text=${encodeURIComponent(
+    [`Hello ${STUDIO_NAME}`, name ? `My name is ${name}.` : '', message || 'I would like to get in touch about a booking.'].filter(Boolean).join('\n'),
   )}`;
 
   return (
@@ -35,19 +37,19 @@ export default function ContactPage() {
             className="block rounded-2xl border border-[#EADBCE] bg-white p-4 transition-shadow hover:shadow-[0_12px_32px_rgba(23,18,17,0.08)] md:rounded-[24px] md:p-6"
           >
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#D98282]">WhatsApp</p>
-            <p className="mt-1.5 font-display text-2xl text-[#171211] md:mt-2 md:text-3xl">{DISPLAY_PHONE}</p>
+            <p className="mt-1.5 font-display text-2xl text-[#171211] md:mt-2 md:text-3xl">{profile.displayPhone}</p>
             <p className="mt-1 text-sm text-[#7A6E68]">Fastest way to reach the shop owner.</p>
           </a>
 
           <div className="rounded-2xl border border-[#EADBCE] bg-white p-4 md:rounded-[24px] md:p-6">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#D98282]">Location</p>
-            <p className="mt-1.5 font-display text-2xl text-[#171211] md:mt-2 md:text-3xl">Cape Coast, UCC Campus</p>
+            <p className="mt-1.5 font-display text-2xl text-[#171211] md:mt-2 md:text-3xl">{profile.location}</p>
             <p className="mt-1 text-sm text-[#7A6E68]">Appointments only — please book a look first.</p>
           </div>
 
           <div className="rounded-2xl border border-[#EADBCE] bg-white p-4 md:rounded-[24px] md:p-6">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#D98282]">Hours</p>
-            <p className="mt-1.5 text-sm font-medium text-[#171211] md:mt-2">Monday – Sunday · 9:00 AM – 5:00 PM</p>
+            <p className="mt-1.5 text-sm font-medium text-[#171211] md:mt-2">{profile.hours}</p>
             <p className="mt-1 text-sm text-[#7A6E68]">Open every day — appointments recommended.</p>
           </div>
         </div>

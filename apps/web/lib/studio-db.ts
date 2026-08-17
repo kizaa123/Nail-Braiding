@@ -286,7 +286,6 @@ export async function dbListBookings() {
     const sql = await ensureStudioSchema();
     const rows = await sql<BookingRow[]>`
       select * from studio_bookings
-      where destination <> 'WHATSAPP'
       order by created_at desc
     `;
     return rows.map(mapBooking);
@@ -296,14 +295,12 @@ export async function dbListBookings() {
   const { data, error } = await supabase
     .from('studio_bookings')
     .select('*')
-    .neq('destination', 'WHATSAPP')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data as BookingRow[]).map(mapBooking);
 }
 
 export async function dbCreateBooking(booking: StudioBooking) {
-  if (booking.destination === 'WHATSAPP') return booking;
   const insertRow = {
     id: booking.id,
     reference: booking.reference,
@@ -432,3 +429,125 @@ export async function dbRenameCategory(kind: 'HAIR' | 'NAILS', from: string, to:
 export async function dbUploadLook(bytes: Buffer, contentType: string) {
   return uploadLookImage(bytes, contentType);
 }
+
+type SettingsRow = {
+  id: string;
+  owner_name: string;
+  email: string;
+  password_hash: string;
+  display_phone: string;
+  whatsapp_phone: string;
+  profile_image_url: string;
+  location: string;
+  hours: string;
+  updated_at: string | Date;
+};
+
+const SETTINGS_TABLE = `create table if not exists studio_settings (
+  id text primary key,
+  owner_name text not null default '',
+  email text not null default '',
+  password_hash text not null default '',
+  display_phone text not null default '',
+  whatsapp_phone text not null default '',
+  profile_image_url text not null default '',
+  location text not null default '',
+  hours text not null default '',
+  updated_at timestamptz not null default now()
+)`;
+
+function mapSettings(row: SettingsRow) {
+  return {
+    ownerName: row.owner_name ?? '',
+    email: row.email ?? '',
+    passwordHash: row.password_hash ?? '',
+    displayPhone: row.display_phone ?? '',
+    whatsappPhone: row.whatsapp_phone ?? '',
+    profileImageUrl: row.profile_image_url ?? '',
+    location: row.location ?? '',
+    hours: row.hours ?? '',
+  };
+}
+
+async function ensureSettingsTable() {
+  if (getStudioSql()) {
+    const sql = await ensureStudioSchema();
+    await sql.unsafe(SETTINGS_TABLE);
+    return;
+  }
+}
+
+export async function dbGetStudioSettings() {
+  const defaults = {
+    ownerName: 'Studio owner',
+    email: 'admin@luxe.studio',
+    passwordHash: '',
+    displayPhone: '0559535682',
+    whatsappPhone: '233559535682',
+    profileImageUrl: '',
+    location: 'Cape Coast, UCC Campus',
+    hours: 'Monday – Sunday · 9:00 AM – 5:00 PM',
+  };
+  if (getStudioSql()) {
+    await ensureSettingsTable();
+    const sql = await ensureStudioSchema();
+    const rows = await sql<SettingsRow[]>`select * from studio_settings where id = 'studio' limit 1`;
+    if (!rows[0]) return defaults;
+    return { ...defaults, ...mapSettings(rows[0]) };
+  }
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return defaults;
+  const { data } = await supabase.from('studio_settings').select('*').eq('id', 'studio').maybeSingle();
+  if (!data) return defaults;
+  return { ...defaults, ...mapSettings(data as SettingsRow) };
+}
+
+export async function dbSaveStudioSettings(input: {
+  ownerName: string;
+  email: string;
+  passwordHash?: string;
+  displayPhone: string;
+  whatsappPhone: string;
+  profileImageUrl: string;
+  location: string;
+  hours: string;
+}) {
+  const current = await dbGetStudioSettings();
+  const row = {
+    id: 'studio',
+    owner_name: input.ownerName,
+    email: input.email,
+    password_hash: input.passwordHash ?? current.passwordHash,
+    display_phone: input.displayPhone,
+    whatsapp_phone: input.whatsappPhone,
+    profile_image_url: input.profileImageUrl,
+    location: input.location,
+    hours: input.hours,
+    updated_at: new Date().toISOString(),
+  };
+  if (getStudioSql()) {
+    await ensureSettingsTable();
+    const sql = await ensureStudioSchema();
+    const rows = await sql<SettingsRow[]>`
+      insert into studio_settings ${sql(row)}
+      on conflict (id) do update set
+        owner_name = excluded.owner_name,
+        email = excluded.email,
+        password_hash = excluded.password_hash,
+        display_phone = excluded.display_phone,
+        whatsapp_phone = excluded.whatsapp_phone,
+        profile_image_url = excluded.profile_image_url,
+        location = excluded.location,
+        hours = excluded.hours,
+        updated_at = excluded.updated_at
+      returning *
+    `;
+    return mapSettings(rows[0]);
+  }
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  const { data, error } = await supabase.from('studio_settings').upsert(row).select('*').single();
+  if (error) throw error;
+  return mapSettings(data as SettingsRow);
+}
+

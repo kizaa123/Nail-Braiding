@@ -152,7 +152,7 @@ export default function AdminPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-[#171211]">{booking.styleName}</p>
                       <p className="mt-0.5 truncate text-[11px] text-[#A99B95]">
-                        {booking.clientName}
+                        {booking.destination === 'WHATSAPP' ? 'WhatsApp' : 'Portal'} · {booking.clientName}
                         {booking.clientPhone ? ` · ${booking.clientPhone}` : ''}
                         {booking.location ? ` · ${booking.location}` : ''}
                       </p>

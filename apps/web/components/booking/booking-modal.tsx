@@ -10,13 +10,14 @@ import {
   DISPLAY_PHONE,
   STUDIO_LOCATION,
   STUDIO_NAME,
-  WHATSAPP_PHONE,
   createStudioBooking,
   formatBookingDate,
   formatBookingTime,
   openWhatsAppBooking,
   type BookableLook,
 } from '@/lib/studio-bookings';
+import { useStudioProfile } from '@/hooks/use-studio-profile';
+import { cachedWhatsAppPhone } from '@/lib/studio-profile';
 
 function todayValue() {
   const now = new Date();
@@ -87,6 +88,7 @@ export function BookingModal({
   const [formError, setFormError] = useState('');
   const [mounted, setMounted] = useState(false);
   const minDate = useMemo(() => todayValue(), []);
+  const { profile } = useStudioProfile();
   const router = useRouter();
 
   useEffect(() => {
@@ -99,13 +101,13 @@ export function BookingModal({
     setContact('');
     setDate('');
     setTime('');
-    setLocation(STUDIO_LOCATION);
+    setLocation(profile.location || STUDIO_LOCATION);
     setNotes('');
     setDone(null);
     setReference('');
     setWhatsappHref('#');
     setFormError('');
-  }, [open]);
+  }, [open, profile.location]);
 
   useEffect(() => {
     if (!open) return;
@@ -140,6 +142,16 @@ export function BookingModal({
       return;
     }
     setFormError('');
+    const booking = createStudioBooking({
+      look,
+      clientName: name,
+      clientPhone: selectedDestination === 'PORTAL' ? contact : undefined,
+      location,
+      scheduledDate: date,
+      scheduledTime: time,
+      notes,
+      destination: selectedDestination,
+    });
     let href = '#';
     if (selectedDestination === 'WHATSAPP') {
       try {
@@ -158,19 +170,9 @@ export function BookingModal({
           notes,
         });
       } catch {
-        href = `https://wa.me/${WHATSAPP_PHONE}`;
+        href = `https://wa.me/${cachedWhatsAppPhone()}`;
       }
     }
-    const booking = createStudioBooking({
-      look,
-      clientName: name,
-      clientPhone: selectedDestination === 'PORTAL' ? contact : undefined,
-      location,
-      scheduledDate: date,
-      scheduledTime: time,
-      notes,
-      destination: selectedDestination,
-    });
     setReference(booking.reference);
     setWhatsappHref(href);
     setDone(selectedDestination);
@@ -227,7 +229,7 @@ export function BookingModal({
               <p className="font-display text-3xl text-[#171211]">Booking confirmed</p>
               <p className="text-sm text-[#7A6E68]">
                 {done === 'WHATSAPP'
-                  ? `WhatsApp should open with this look and booking ready to send to ${DISPLAY_PHONE}.`
+                  ? `WhatsApp should open with this booking ready to send to ${profile.displayPhone || DISPLAY_PHONE}. Check the admin portal for the style image.`
                   : 'This booking is now on the studio portal board.'}
               </p>
               {done === 'PORTAL' ? (

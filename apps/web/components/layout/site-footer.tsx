@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Container } from '@/components/ui/section';
 import { StudioLogo } from '@/components/brand/studio-logo';
-import { STUDIO_LOCATION, WHATSAPP_PHONE } from '@/lib/studio-bookings';
+import { useStudioProfile } from '@/hooks/use-studio-profile';
 
 function WhatsAppMark({ className }: { className?: string }) {
   return (
@@ -14,7 +14,8 @@ function WhatsAppMark({ className }: { className?: string }) {
 }
 
 export function SiteFooter() {
-  const whatsappHref = `https://wa.me/${WHATSAPP_PHONE}`;
+  const { profile } = useStudioProfile();
+  const whatsappHref = `https://wa.me/${profile.whatsappPhone}`;
 
   return (
     <footer className="mt-32 border-t border-white/10 bg-obsidian pb-16 pt-20 text-ivory">
@@ -26,10 +27,10 @@ export function SiteFooter() {
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3 text-xs">
             <span className="rounded-full border border-champagne/40 bg-champagne/10 px-3.5 py-1.5 font-semibold text-champagne">
-              {STUDIO_LOCATION}
+              {profile.location}
             </span>
             <span className="rounded-full border border-champagne/40 bg-champagne/10 px-3.5 py-1.5 font-semibold text-champagne">
-              Mon – Sun · 9:00 AM – 5:00 PM
+              {profile.hours}
             </span>
             <a
               href={whatsappHref}

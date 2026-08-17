@@ -1,4 +1,5 @@
 import { formatCedis } from '@/lib/api';
+import { cachedWhatsAppPhone } from '@/lib/studio-profile';
 
 export const STUDIO_BOOKINGS_KEY = 'luxe-studio-bookings';
 export const STUDIO_NAME = 'KAS Beauty Plus';
@@ -205,23 +206,6 @@ function openWhatsAppHref(href: string) {
   }
 }
 
-function isLocalHostUrl(url: string) {
-  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
-}
-
-function lookPhotoLink(input: { imageUrl?: string; slug?: string }) {
-  if (typeof window === 'undefined') return '';
-  const raw = input.imageUrl?.trim() ?? '';
-  if (/^https:\/\/res\.cloudinary\.com\//i.test(raw) && raw.length < 1800) {
-    return raw.replace(/\/image\/upload\/(?!f_jpg)/, '/image/upload/f_jpg,q_70,w_1080,c_limit/');
-  }
-  const origin = window.location.origin;
-  if (input.slug && !isLocalHostUrl(origin)) {
-    return `${origin}/og/${encodeURIComponent(input.slug)}/photo.jpg`;
-  }
-  return '';
-}
-
 export function buildWhatsAppBookingMessage(input: {
   studioName: string;
   reference?: string;
@@ -240,9 +224,7 @@ export function buildWhatsAppBookingMessage(input: {
   notes?: string;
 }) {
   const { day, time } = formatBookingWhen(input);
-  const photo = lookPhotoLink(input);
   const lines = [
-    ...(photo ? [photo, ''] : []),
     `Hello ${input.studioName}`,
     '',
     'I would like to book this look:',
@@ -270,12 +252,13 @@ export function buildWhatsAppBookingMessage(input: {
   if (input.notes?.trim()) {
     lines.push('', `*Note:* ${input.notes.trim()}`);
   }
+  lines.push('', 'Check the admin portal for the style image.');
   lines.push('', 'Please confirm my appointment. Thank you.');
   return lines.join('\n');
 }
 
 export function buildWhatsAppUrl(text: string) {
-  return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${cachedWhatsAppPhone()}?text=${encodeURIComponent(text)}`;
 }
 
 export function openWhatsAppBooking(input: Parameters<typeof buildWhatsAppBookingMessage>[0]) {
@@ -289,7 +272,7 @@ export function openWhatsAppBooking(input: Parameters<typeof buildWhatsAppBookin
     openWhatsAppHref(href);
     return href;
   } catch {
-    const fallback = `https://wa.me/${WHATSAPP_PHONE}`;
+    const fallback = `https://wa.me/${cachedWhatsAppPhone()}`;
     try {
       openWhatsAppHref(fallback);
     } catch {
@@ -327,9 +310,7 @@ export function listStudioBookings(): StudioBooking[] {
     const raw = window.localStorage.getItem(STUDIO_BOOKINGS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as StudioBooking[];
-    return Array.isArray(parsed)
-      ? parsed.map(normalizeBooking).filter((booking) => booking.destination !== 'WHATSAPP')
-      : [];
+    return Array.isArray(parsed) ? parsed.map(normalizeBooking) : [];
   } catch {
     return [];
   }
@@ -393,15 +374,13 @@ export function createStudioBooking(input: {
     status: 'WAITING',
     createdAt: new Date().toISOString(),
   };
-  if (input.destination === 'PORTAL') {
-    saveStudioBooking(booking);
-    void import('@/lib/studio-http').then(({ studioRequest }) =>
-      studioRequest('/api/studio/bookings', {
-        method: 'POST',
-        body: JSON.stringify(booking),
-      }),
-    );
-  }
+  saveStudioBooking(booking);
+  void import('@/lib/studio-http').then(({ studioRequest }) =>
+    studioRequest('/api/studio/bookings', {
+      method: 'POST',
+      body: JSON.stringify(booking),
+    }),
+  );
   return booking;
 }
 

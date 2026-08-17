@@ -50,6 +50,18 @@ const SCHEMA_STATEMENTS = [
     ('HAIR', array['Protective Braids', 'Twists & Locs', 'Locs', 'Weaves', 'Cornrows']),
     ('NAILS', array['Nail Art', 'Nail Shapes', 'Extensions', 'Gel', 'Acrylic'])
   on conflict (kind) do nothing`,
+  `create table if not exists studio_settings (
+    id text primary key,
+    owner_name text not null default '',
+    email text not null default '',
+    password_hash text not null default '',
+    display_phone text not null default '',
+    whatsapp_phone text not null default '',
+    profile_image_url text not null default '',
+    location text not null default '',
+    hours text not null default '',
+    updated_at timestamptz not null default now()
+  )`,
 ];
 
 let client: postgres.Sql | null | undefined;

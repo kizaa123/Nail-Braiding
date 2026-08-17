@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { verifyStudioOwner } from '@/lib/studio-session';
+import { dbGetStudioSettings } from '@/lib/studio-db';
 
 export const STUDIO_ADMIN_COOKIE = 'kas_studio_admin';
 
@@ -60,6 +61,47 @@ export function cloudUnavailable() {
   );
 }
 
-export function loginStudioOwner(email: string, password: string) {
+export function hashStudioPassword(password: string) {
+  return createHmac('sha256', secret()).update(`kas-pw:${password}`).digest('hex');
+}
+
+export function studioPasswordsMatch(password: string, hash: string) {
+  if (!password || !hash) return false;
+  const a = Buffer.from(hashStudioPassword(password), 'utf8');
+  const b = Buffer.from(hash, 'utf8');
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+export function currentPasswordValid(password: string, storedHash?: string) {
+  if (storedHash && studioPasswordsMatch(password, storedHash)) return true;
+  return Boolean(
+    verifyStudioOwner('admin@luxe.studio', password) ||
+      verifyStudioOwner('admin@noir-atelier.dev', password),
+  );
+}
+
+export async function loginStudioOwner(email: string, password: string) {
+  const normalized = email.trim().toLowerCase();
+  try {
+    const settings = await dbGetStudioSettings();
+    const settingsEmail = settings.email.trim().toLowerCase();
+    if (settings.passwordHash) {
+      if (normalized === settingsEmail && studioPasswordsMatch(password, settings.passwordHash)) {
+        return { email: settings.email, password, role: 'ADMIN' as const };
+      }
+      const seedEmail = (process.env.SEED_ADMIN_EMAIL || '').trim().toLowerCase();
+      const seedPassword = process.env.SEED_ADMIN_PASSWORD || '';
+      if (seedEmail && seedPassword && normalized === seedEmail && password === seedPassword) {
+        return { email: seedEmail, password: seedPassword, role: 'ADMIN' as const };
+      }
+      return null;
+    }
+    if (settingsEmail && normalized === settingsEmail && currentPasswordValid(password)) {
+      return { email: settings.email, password, role: 'ADMIN' as const };
+    }
+  } catch {
+    /* fall through to built-in owners */
+  }
   return verifyStudioOwner(email, password);
 }

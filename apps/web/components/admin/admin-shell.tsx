@@ -6,8 +6,10 @@ import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { api } from '@/lib/api';
 import { useStudioSession } from '@/hooks/use-studio-session';
+import { useStudioProfile } from '@/hooks/use-studio-profile';
 import { clearStudioSession } from '@/lib/studio-session';
 import { StudioLogo } from '@/components/brand/studio-logo';
+import { CatalogImage } from '@/components/ui/catalog-image';
 
 const nav = [
   {
@@ -109,6 +111,7 @@ function SidebarNav({ pathname, onNavigate }: { pathname: string; onNavigate?: (
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { session } = useStudioSession();
+  const { profile } = useStudioProfile();
   const [open, setOpen] = useState(false);
   const title = titles[pathname] ?? 'Studio portal';
 
@@ -137,8 +140,21 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <SidebarNav pathname={pathname} />
         <div className="border-t border-white/10 p-4">
           <div className="rounded-2xl bg-white/5 px-3 py-3">
-            <p className="truncate text-xs font-medium text-white">{session?.email ?? 'Studio owner'}</p>
-            <p className="mt-0.5 text-[10px] uppercase tracking-widest text-white/40">Administrator</p>
+            <div className="flex items-center gap-3">
+              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/10">
+                {profile.profileImageUrl ? (
+                  <CatalogImage src={profile.profileImageUrl} alt="" className="object-cover" sizes="40px" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase text-white/50">
+                    {(profile.ownerName || 'SO').slice(0, 2)}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-medium text-white">{profile.ownerName || 'Studio owner'}</p>
+                <p className="truncate text-[10px] text-white/40">{session?.email ?? profile.email}</p>
+              </div>
+            </div>
             <div className="mt-3 flex gap-2">
               <Link
                 href="/"
@@ -193,7 +209,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </div>
               <SidebarNav pathname={pathname} onNavigate={() => setOpen(false)} />
               <div className="border-t border-white/10 p-4">
-                <p className="truncate text-xs text-white">{session?.email ?? 'Studio owner'}</p>
+                <div className="flex items-center gap-3">
+                  <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white/10">
+                    {profile.profileImageUrl ? (
+                      <CatalogImage src={profile.profileImageUrl} alt="" className="object-cover" sizes="36px" />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs text-white">{profile.ownerName || 'Studio owner'}</p>
+                    <p className="truncate text-[10px] text-white/40">{session?.email ?? profile.email}</p>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={signOut}

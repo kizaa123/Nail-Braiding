@@ -53,6 +53,19 @@ insert into studio_categories (kind, names) values
   ('NAILS', array['Nail Art', 'Nail Shapes', 'Extensions', 'Gel', 'Acrylic'])
 on conflict (kind) do nothing;
 
+create table if not exists studio_settings (
+  id text primary key,
+  owner_name text not null default '',
+  email text not null default '',
+  password_hash text not null default '',
+  display_phone text not null default '',
+  whatsapp_phone text not null default '',
+  profile_image_url text not null default '',
+  location text not null default '',
+  hours text not null default '',
+  updated_at timestamptz not null default now()
+);
+
 alter table studio_styles enable row level security;
 alter table studio_bookings enable row level security;
 alter table studio_categories enable row level security;

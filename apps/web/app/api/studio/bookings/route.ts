@@ -21,7 +21,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   if (!studioCloudConfigured()) return cloudUnavailable();
   const booking = (await request.json().catch(() => null)) as StudioBooking | null;
-  if (!booking?.clientName || !booking.styleName || booking.destination !== 'PORTAL') {
+  if (!booking?.clientName || !booking.styleName) {
+    return NextResponse.json({ error: 'Invalid booking.' }, { status: 400 });
+  }
+  if (booking.destination !== 'PORTAL' && booking.destination !== 'WHATSAPP') {
     return NextResponse.json({ error: 'Invalid booking.' }, { status: 400 });
   }
   try {

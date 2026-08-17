@@ -140,7 +140,10 @@ function BookingRow({ booking }: { booking: StudioBooking }) {
           </div>
           <div className="min-w-0">
             <p className="font-medium text-[#171211]">{booking.styleName}</p>
-            <p className="text-[11px] text-[#A99B95]">{booking.categoryName}</p>
+            <p className="text-[11px] text-[#A99B95]">
+              {booking.categoryName}
+              {booking.destination === 'WHATSAPP' ? ' · WhatsApp' : ' · Portal'}
+            </p>
           </div>
         </div>
       </td>
