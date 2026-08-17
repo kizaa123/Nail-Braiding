@@ -1,5 +1,4 @@
 import { formatCedis } from '@/lib/api';
-import { lookSharePath } from '@/lib/look-share';
 
 export const STUDIO_BOOKINGS_KEY = 'luxe-studio-bookings';
 export const STUDIO_NAME = 'KAS Beauty Plus';
@@ -162,14 +161,11 @@ function messagePhotoLine(imageUrl?: string) {
   return '';
 }
 
-function syncLookPreviewUrl(imageUrl?: string, styleName?: string) {
+function syncLookPreviewUrl(imageUrl?: string) {
   const raw = imageUrl?.trim() ?? '';
   if (!raw || raw.startsWith('data:') || raw.startsWith('blob:') || typeof window === 'undefined') return '';
-  const origin = window.location.origin;
-  const abs = raw.startsWith('/') ? new URL(raw, origin).href : raw;
-  if (!/^https?:\/\//i.test(abs) || isLocalHostUrl(abs)) return '';
-  if (isLocalHostUrl(origin)) return isDurablePublicImageUrl(abs) ? abs : '';
-  return new URL(lookSharePath(abs, styleName || 'Look'), origin).href;
+  const abs = raw.startsWith('/') ? new URL(raw, window.location.origin).href : raw;
+  return isDurablePublicImageUrl(abs) ? abs : '';
 }
 
 export function buildWhatsAppBookingMessage(input: {
@@ -229,32 +225,38 @@ export function buildWhatsAppUrl(text: string) {
 
 export function openWhatsAppBooking(input: Parameters<typeof buildWhatsAppBookingMessage>[0]) {
   if (typeof window === 'undefined') return '#';
-  const text = buildWhatsAppBookingMessage({
-    ...input,
-    reference: undefined,
-    imageUrl: syncLookPreviewUrl(input.imageUrl, input.styleName),
-  });
-  const href = buildWhatsAppUrl(text);
-  const popup = window.open(href, '_blank');
-  if (popup) {
+  try {
+    const text = buildWhatsAppBookingMessage({
+      ...input,
+      reference: undefined,
+      imageUrl: syncLookPreviewUrl(input.imageUrl),
+    });
+    const href = buildWhatsAppUrl(text);
+    const mobile = /Android|iPhone|iPad|iPod|webOS|Mobile/i.test(navigator.userAgent);
+    if (mobile) {
+      window.location.href = href;
+      return href;
+    }
+    const popup = window.open(href, '_blank');
+    if (!popup || popup.closed) {
+      window.location.href = href;
+    } else {
+      try {
+        popup.opener = null;
+      } catch {
+        /* ignore */
+      }
+    }
+    return href;
+  } catch {
+    const fallback = `https://wa.me/${WHATSAPP_PHONE}`;
     try {
-      popup.opener = null;
+      window.location.href = fallback;
     } catch {
       /* ignore */
     }
-    return href;
+    return fallback;
   }
-  const anchor = document.createElement('a');
-  anchor.href = href;
-  anchor.target = '_blank';
-  anchor.rel = 'noopener noreferrer';
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => {
-    if (document.visibilityState === 'visible') window.location.assign(href);
-  }, 400);
-  return href;
 }
 
 function notifyBookings() {

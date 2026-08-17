@@ -8,7 +8,9 @@ import { CatalogImage } from '@/components/ui/catalog-image';
 import {
   BOOKING_TIME_SLOTS,
   DISPLAY_PHONE,
+  STUDIO_LOCATION,
   STUDIO_NAME,
+  WHATSAPP_PHONE,
   createStudioBooking,
   formatBookingDate,
   formatBookingTime,
@@ -70,6 +72,7 @@ export function BookingModal({
   const [done, setDone] = useState<'PORTAL' | 'WHATSAPP' | null>(null);
   const [reference, setReference] = useState('');
   const [whatsappHref, setWhatsappHref] = useState('#');
+  const [formError, setFormError] = useState('');
   const [mounted, setMounted] = useState(false);
   const minDate = useMemo(() => todayValue(), []);
   const router = useRouter();
@@ -84,11 +87,12 @@ export function BookingModal({
     setContact('');
     setDate('');
     setTime('');
-    setLocation('');
+    setLocation(STUDIO_LOCATION);
     setNotes('');
     setDone(null);
     setReference('');
     setWhatsappHref('#');
+    setFormError('');
   }, [open]);
 
   useEffect(() => {
@@ -107,32 +111,42 @@ export function BookingModal({
 
   if (!mounted || !open || !look) return null;
 
-  const canSubmit = Boolean(
-    name.trim() && date && time && location.trim() && (destination !== 'PORTAL' || contact.trim()),
-  );
-
-  const closeAfterSuccess = () => {
-    onClose();
-    router.push('/styles');
+  const missingFields = () => {
+    const missing: string[] = [];
+    if (!name.trim()) missing.push('name');
+    if (!date) missing.push('date');
+    if (!time) missing.push('time');
+    if (!location.trim()) missing.push('location');
+    if (destination === 'PORTAL' && !contact.trim()) missing.push('contact');
+    return missing;
   };
 
   const submit = (selectedDestination: 'PORTAL' | 'WHATSAPP') => {
-    if (!canSubmit) return;
+    const missing = missingFields();
+    if (missing.length) {
+      setFormError(`Please add ${missing.join(', ')}.`);
+      return;
+    }
+    setFormError('');
     let href = '#';
-    if (selectedDestination === 'WHATSAPP') {
-      href = openWhatsAppBooking({
-        studioName: STUDIO_NAME,
-        clientName: name,
-        location,
-        styleName: look.name,
-        categoryName: look.categoryName,
-        imageUrl: look.imageUrl,
-        durationMinutes: look.durationMinutes,
-        priceMinor: look.startingPriceMinor,
-        scheduledDate: date,
-        scheduledTime: time,
-        notes,
-      });
+    try {
+      if (selectedDestination === 'WHATSAPP') {
+        href = openWhatsAppBooking({
+          studioName: STUDIO_NAME,
+          clientName: name,
+          location,
+          styleName: look.name,
+          categoryName: look.categoryName,
+          imageUrl: look.imageUrl,
+          durationMinutes: look.durationMinutes,
+          priceMinor: look.startingPriceMinor,
+          scheduledDate: date,
+          scheduledTime: time,
+          notes,
+        });
+      }
+    } catch {
+      href = `https://wa.me/${WHATSAPP_PHONE}`;
     }
     const booking = createStudioBooking({
       look,
@@ -145,8 +159,13 @@ export function BookingModal({
       destination: selectedDestination,
     });
     setReference(booking.reference);
-    setDone(selectedDestination);
     setWhatsappHref(href);
+    setDone(selectedDestination);
+  };
+
+  const closeAfterSuccess = () => {
+    onClose();
+    router.push('/styles');
   };
 
   return createPortal(
@@ -225,6 +244,7 @@ export function BookingModal({
         ) : (
           <form
             className="space-y-3 px-4 py-4"
+            noValidate
             onSubmit={(event) => {
               event.preventDefault();
               submit(destination);
@@ -235,7 +255,6 @@ export function BookingModal({
                 Name <span className="text-[#D98282]">*</span>
               </span>
               <input
-                required
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="Your full name"
@@ -249,7 +268,6 @@ export function BookingModal({
                   Contact <span className="text-[#D98282]">*</span>
                 </span>
                 <input
-                  required
                   type="tel"
                   value={contact}
                   onChange={(event) => setContact(event.target.value)}
@@ -266,7 +284,6 @@ export function BookingModal({
                 </span>
                 <input
                   type="date"
-                  required
                   min={minDate}
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
@@ -278,7 +295,6 @@ export function BookingModal({
                   Time <span className="text-[#D98282]">*</span>
                 </span>
                 <select
-                  required
                   value={time}
                   onChange={(event) => setTime(event.target.value)}
                   className="mt-1 min-h-11 w-full rounded-2xl border border-[#EADBCE] bg-white px-3 text-sm text-[#171211] outline-none focus:border-[#D98282]"
@@ -298,7 +314,6 @@ export function BookingModal({
                 Location <span className="text-[#D98282]">*</span>
               </span>
               <input
-                required
                 value={location}
                 onChange={(event) => setLocation(event.target.value)}
                 placeholder="e.g. Cape Coast, UCC Campus"
@@ -326,10 +341,12 @@ export function BookingModal({
               </p>
             ) : null}
 
+            {formError ? <p className="text-center text-[12px] text-[#D98282]">{formError}</p> : null}
+
             <button
-              type="submit"
-              disabled={!canSubmit}
-              className={`min-h-11 w-full rounded-2xl text-[10px] font-bold uppercase tracking-[0.14em] disabled:opacity-40 ${
+              type="button"
+              onClick={() => submit(destination)}
+              className={`min-h-11 w-full rounded-2xl text-[10px] font-bold uppercase tracking-[0.14em] ${
                 destination === 'WHATSAPP' ? 'bg-[#128C7E] text-white' : 'bg-[#C9A46A] text-[#171211]'
               }`}
             >
